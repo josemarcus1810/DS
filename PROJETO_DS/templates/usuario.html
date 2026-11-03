@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block titulo %}Usuário{% endblock %}
+{% block cabecalho_titulo %}Meu usuário{% endblock %}
+{% block cabecalho_texto %}Consulte suas informações de acesso ao sistema.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Informações da conta</h3>
+
+    <dl class="detalhes">
+        <dt>Nome de usuário:</dt>
+        <dd>{{ conta.usuario }}</dd>
+
+        <dt>Nome:</dt>
+        <dd>{{ conta.nome }}</dd>
+
+        <dt>Acesso anterior:</dt>
+        <dd>{{ acesso_anterior or 'Primeiro acesso' }}</dd>
+
+        <dt>Senha alterada em:</dt>
+        <dd>{{ conta.senha_alterada_em | datahora_br }}</dd>
+
+        <dt>Troca de senha em:</dt>
+        <dd>{{ dias_restantes }} dia(s)</dd>
+    </dl>
+</section>
+
+<section>
+    <h3>Segurança</h3>
+
+    <p>Para manter sua conta segura, não compartilhe sua senha com outras pessoas. A senha deve ser trocada a cada dois meses.</p>
+
+    <a href="{{ url_for('alterar_senha') }}" class="botao-principal">Alterar senha</a>
+</section>
+{% endblock %}
