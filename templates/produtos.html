@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block titulo %}Produtos{% endblock %}
+{% block cabecalho_titulo %}Produtos{% endblock %}
+{% block cabecalho_texto %}Cadastre e consulte os produtos do almoxarifado.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Cadastrar produto</h3>
+
+    <form class="formulario-grid" action="{{ url_for('produtos') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="campo">
+            <label for="nome">Nome do produto:</label>
+            <input
+            type="text"
+            name="nome"
+            id="nome"
+            value="{{ form.get('nome', '') }}"
+            maxlength="150"
+            required
+        >
+        </div>
+
+        <div class="campo">
+            <label for="tipo">Tipo do produto:</label>
+            <select name="tipo" id="tipo" required>
+            <option value="">Selecione um tipo</option>
+            <option value="papelaria" {% if form.get('tipo') == 'papelaria' %}selected{% endif %}>Papelaria</option>
+            <option value="limpeza" {% if form.get('tipo') == 'limpeza' %}selected{% endif %}>Limpeza</option>
+            <option value="informatica" {% if form.get('tipo') == 'informatica' %}selected{% endif %}>Informática</option>
+            <option value="outros" {% if form.get('tipo') == 'outros' %}selected{% endif %}>Outros</option>
+        </select>
+        </div>
+        <p class="ajuda">O código (PAP_01, LIM_01, INF_01, OUT_01...) é gerado automaticamente conforme o tipo.</p>
+
+        <div class="campo">
+            <label for="data_validade">Data de validade:</label>
+            <input
+            type="date"
+            name="data_validade"
+            id="data_validade"
+            value="{{ form.get('data_validade', '') }}"
+            min="{{ data_minima }}"
+            max="{{ data_maxima }}"
+            required
+            oninvalid="this.setCustomValidity('Insira uma data válida.')"
+            oninput="this.setCustomValidity('')"
+        >
+        </div>
+
+        <div class="campo">
+            <label for="quantidade">Quantidade:</label>
+            <input
+            type="number"
+            name="quantidade"
+            id="quantidade"
+            value="{{ form.get('quantidade', '') }}"
+            min="1"
+            max="{{ limite_quantidade }}"
+            step="1"
+            required
+        >
+        </div>
+
+        <button type="submit">Cadastrar produto</button>
+
+    </form>
+</section>
+
+<section>
+    <h3>Produtos cadastrados</h3>
+
+    <div class="tabela-rolavel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Validade</th>
+                    <th>Quantidade</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for produto in produtos %}
+                <tr>
+                    <td>{{ produto.codigo }}</td>
+                    <td>{{ produto.nome }}</td>
+                    <td>{{ produto.tipo | rotulo_tipo }}</td>
+                    <td>{{ produto.data_validade | data_br }}</td>
+                    <td>{{ produto.quantidade }}</td>
+                    <td><span class="selo {{ produto.situacao | classe_selo }}">{{ produto.situacao | maiuscula_inicial }}</span></td>
+                    <td>
+                        <a href="{{ url_for('editar_produto', id=produto.id) }}">Editar</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7">Nenhum produto cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

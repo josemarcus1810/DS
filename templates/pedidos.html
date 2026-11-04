@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block titulo %}Pedidos de compra{% endblock %}
+{% block cabecalho_titulo %}Pedidos de compra{% endblock %}
+{% block cabecalho_texto %}Cadastre e acompanhe as solicitações de compra.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Novo pedido</h3>
+
+    <form class="formulario-grid" action="{{ url_for('pedidos') }}" method="POST" autocomplete="off" id="form-pedido">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="campo">
+            <label for="produto_novo">É um produto novo?</label>
+            <select id="produto_novo" name="produto_novo" required>
+            <option value="">Selecione uma opção</option>
+            <option value="sim" {% if form.get('produto_novo') == 'sim' %}selected{% endif %}>Sim</option>
+            <option value="nao" {% if form.get('produto_novo') == 'nao' %}selected{% endif %}>Não, já está cadastrado</option>
+        </select>
+        </div>
+
+        <div id="campo-novo">
+            <div class="campo">
+            <label for="nome_produto">Nome do produto:</label>
+            <input
+                type="text"
+                id="nome_produto"
+                name="nome_produto"
+                value="{{ form.get('nome_produto', '') }}"
+                placeholder="Digite o nome do produto"
+                maxlength="150"
+            >
+        </div>
+        </div>
+
+        <div id="campo-existente">
+            <div class="campo">
+            <label for="produto">Produto cadastrado (digite o nome ou o código e escolha na lista):</label>
+            <input
+                type="text"
+                id="produto"
+                name="produto"
+                list="lista-produtos"
+                value="{{ form.get('produto', '') }}"
+                placeholder="Ex.: PAP_01 ou nome do produto"
+            >
+        </div>
+            <datalist id="lista-produtos">
+                {% for produto in produtos %}
+                <option value="{{ produto.codigo }} - {{ produto.nome }}"></option>
+                {% endfor %}
+            </datalist>
+        </div>
+
+        <div class="campo">
+            <label for="quantidade">Quantidade solicitada:</label>
+            <input
+            type="number"
+            id="quantidade"
+            name="quantidade"
+            value="{{ form.get('quantidade', '') }}"
+            min="1"
+            max="{{ limite_quantidade }}"
+            step="1"
+            required
+        >
+        </div>
+
+        <div class="campo">
+            <label for="setor">Setor solicitante:</label>
+            <input
+            type="text"
+            id="setor"
+            name="setor"
+            value="{{ form.get('setor', '') }}"
+            placeholder="Digite o setor"
+            maxlength="100"
+            required
+        >
+        </div>
+
+        <div class="campo">
+            <label for="link_produto">Link do produto:</label>
+            <input
+            type="url"
+            id="link_produto"
+            name="link_produto"
+            value="{{ form.get('link_produto', '') }}"
+            placeholder="https://..."
+            maxlength="500"
+        >
+        </div>
+        <p class="ajuda" id="ajuda-link">Obrigatório para produto novo; opcional para produto já cadastrado.</p>
+
+        <button type="submit">Enviar pedido</button>
+    </form>
+</section>
+
+<section>
+    <h3>Pedidos cadastrados</h3>
+
+    <form method="GET" action="{{ url_for('pedidos') }}" class="filtros filtros-simples">
+        <div class="campo">
+            <label for="status">Filtrar por situação:</label>
+            <select id="status" name="status">
+                <option value="">Todas</option>
+                {% for s in status_pedido %}
+                <option value="{{ s }}" {% if filtro_status == s %}selected{% endif %}>{{ s | maiuscula_inicial }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="acoes-formulario">
+            <button type="submit">Filtrar</button>
+        </div>
+    </form>
+
+    <div class="tabela-rolavel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Produto</th>
+                    <th>Quantidade</th>
+                    <th>Setor</th>
+                    <th>Data do pedido</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for pedido in pedidos %}
+                <tr>
+                    <td>{{ pedido.numero }}</td>
+                    <td>{{ pedido.nome_produto }}</td>
+                    <td>{{ pedido.quantidade }}</td>
+                    <td>{{ pedido.setor }}</td>
+                    <td>{{ pedido.data_pedido | datahora_br }}</td>
+                    <td><span class="selo {{ pedido.status | classe_selo }}">{{ pedido.status | maiuscula_inicial }}</span></td>
+                    <td><a href="{{ url_for('visualizar_pedido', id=pedido.id) }}">Visualizar</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7">Nenhum pedido encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Mostra só o campo que faz sentido: nome (produto novo) ou lista (produto cadastrado).
+    (function () {
+        var opcao = document.getElementById("produto_novo");
+        var campoNovo = document.getElementById("campo-novo");
+        var campoExistente = document.getElementById("campo-existente");
+        var nome = document.getElementById("nome_produto");
+        var existente = document.getElementById("produto");
+        var link = document.getElementById("link_produto");
+
+        function atualizar() {
+            var novo = opcao.value === "sim";
+            var cadastrado = opcao.value === "nao";
+
+            campoNovo.hidden = cadastrado;
+            campoExistente.hidden = novo;
+
+            nome.disabled = cadastrado;
+            existente.disabled = novo;
+
+            nome.required = novo;
+            existente.required = cadastrado;
+            link.required = novo;
+        }
+
+        opcao.addEventListener("change", atualizar);
+        atualizar();
+    })();
+</script>
+{% endblock %}
