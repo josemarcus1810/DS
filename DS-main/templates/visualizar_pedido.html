@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block titulo %}Pedido {{ pedido.numero }}{% endblock %}
+{% block cabecalho_titulo %}Detalhes do pedido{% endblock %}
+{% block cabecalho_texto %}Consulte as informações e a situação da solicitação.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Informações do pedido</h3>
+
+    <dl class="detalhes">
+        <dt>Número do pedido:</dt>
+        <dd>{{ pedido.numero }}</dd>
+
+        <dt>Produto:</dt>
+        <dd>
+            {% if pedido.codigo_produto %}{{ pedido.codigo_produto }} - {% endif %}{{ pedido.nome_produto }}
+        </dd>
+
+        <dt>Produto novo?</dt>
+        <dd>{{ 'Sim' if pedido.produto_novo else 'Não' }}</dd>
+
+        <dt>Quantidade solicitada:</dt>
+        <dd>{{ pedido.quantidade }}</dd>
+
+        <dt>Setor solicitante:</dt>
+        <dd>{{ pedido.setor }}</dd>
+
+        <dt>Link do produto:</dt>
+        <dd>
+            {% if pedido.link_produto %}
+                <a href="{{ pedido.link_produto }}" target="_blank" rel="noopener noreferrer">Consultar produto</a>
+            {% else %}
+                Não informado
+            {% endif %}
+        </dd>
+
+        <dt>Solicitado por:</dt>
+        <dd>{{ pedido.solicitante or '—' }} em {{ pedido.data_pedido | datahora_br }}</dd>
+
+        <dt>Situação:</dt>
+        <dd><span class="selo {{ pedido.status | classe_selo }}">{{ pedido.status | maiuscula_inicial }}</span></dd>
+
+        {% if pedido.data_atualizacao %}
+        <dt>Última atualização:</dt>
+        <dd>{{ pedido.data_atualizacao | datahora_br }}{% if pedido.atualizado_por %} por {{ pedido.atualizado_por }}{% endif %}</dd>
+        {% endif %}
+    </dl>
+</section>
+
+<section>
+    <h3>Atualizar situação</h3>
+
+    <form class="formulario-grid" action="{{ url_for('visualizar_pedido', id=pedido.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+            <label for="status">Situação do pedido:</label>
+            <select id="status" name="status" required>
+            {% for s in status_pedido %}
+            <option value="{{ s }}" {% if pedido.status == s %}selected{% endif %}>{{ s | maiuscula_inicial }}</option>
+            {% endfor %}
+        </select>
+        </div>
+
+        <div class="acoes-formulario">
+            <button type="submit">Salvar situação</button>
+            <a href="{{ url_for('pedidos') }}" class="botao-secundario">Voltar para os pedidos</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

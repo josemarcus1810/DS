@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block titulo %}Lotes{% endblock %}
+{% block cabecalho_titulo %}Lotes{% endblock %}
+{% block cabecalho_texto %}Consulte e gerencie os lotes dos produtos.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Lotes cadastrados</h3>
+
+    <p>
+        <a href="{{ url_for('novo_lote') }}" class="botao-principal">Cadastrar novo lote</a>
+    </p>
+
+    <div class="tabela-rolavel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Número do lote</th>
+                    <th>Produto</th>
+                    <th>Quantidade</th>
+                    <th>Data de validade</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for lote in lotes %}
+                <tr>
+                    <td>{{ lote.numero_lote }}</td>
+                    <td>{{ lote.codigo_produto }} - {{ lote.nome_produto }}</td>
+                    <td>{{ lote.quantidade }}</td>
+                    <td>{{ lote.data_validade | data_br }}</td>
+                    <td><span class="selo {{ lote.situacao | classe_selo }}">{{ lote.situacao | maiuscula_inicial }}</span></td>
+                    <td>
+                        <a href="{{ url_for('editar_lote', id=lote.id) }}">Editar</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6">Nenhum lote cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

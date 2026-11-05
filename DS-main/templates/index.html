@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block titulo %}Início{% endblock %}
+{% block cabecalho_titulo %}Painel inicial{% endblock %}
+{% block cabecalho_texto %}Bem-vindo ao sistema de almoxarifado!{% endblock %}
+
+{% block conteudo %}
+<section class="metricas">
+    <article class="cartao">
+        <h3>Produtos</h3>
+        <p class="numero">{{ totais.produtos }}</p>
+        <p>Total de produtos cadastrados</p>
+    </article>
+
+    <article class="cartao">
+        <h3>Lotes</h3>
+        <p class="numero">{{ totais.lotes }}</p>
+        <p>Total de lotes cadastrados</p>
+    </article>
+
+    <article class="cartao">
+        <h3>Pedidos de compra</h3>
+        <p class="numero">{{ totais.pedidos }}</p>
+        <p>Pedidos registrados ({{ totais.pedidos_pendentes }} pendentes)</p>
+    </article>
+
+    <article class="cartao">
+        <h3>Movimentações</h3>
+        <p class="numero">{{ totais.movimentacoes }}</p>
+        <p>Movimentações registradas</p>
+    </article>
+</section>
+
+<section class="acoes">
+    <h3>Ações rápidas</h3>
+
+    <div class="botoes-rapidos">
+        <a href="{{ url_for('produtos') }}">Cadastrar produto</a>
+        <a href="{{ url_for('pedidos') }}">Realizar pedido</a>
+        <a href="{{ url_for('movimentacoes') }}">Ver movimentações</a>
+        <a href="{{ url_for('novo_lote') }}">Adicionar lote</a>
+    </div>
+</section>
+
+<section class="historico">
+    <h3>Últimas movimentações</h3>
+
+    <div class="tabela-rolavel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data e hora</th>
+                    <th>Produto</th>
+                    <th>Tipo</th>
+                    <th>Usuário</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for mov in ultimas %}
+                <tr>
+                    <td>{{ mov.data_movimentacao | datahora_br }}</td>
+                    <td>
+                        {% if mov.codigo_produto %}
+                            {{ mov.codigo_produto }} - {{ mov.nome_produto }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ mov.tipo_movimentacao }}</td>
+                    <td>{{ mov.usuario_responsavel or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">Nenhuma movimentação registrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

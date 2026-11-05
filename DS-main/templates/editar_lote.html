@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar lote{% endblock %}
+{% block cabecalho_titulo %}Editar lote{% endblock %}
+{% block cabecalho_texto %}Consulte e atualize as informações do lote.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Dados do lote</h3>
+
+    <form class="formulario-grid" action="{{ url_for('editar_lote', id=lote.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="campo">
+            <label for="numero_lote">Número do lote:</label>
+            <input type="text" id="numero_lote" value="{{ lote.numero_lote }}" readonly>
+        </div>
+
+        <div class="campo">
+            <label for="produto">Produto:</label>
+            <input type="text" id="produto" value="{{ lote.codigo_produto }} - {{ lote.nome_produto }}" readonly>
+        </div>
+
+        <div class="campo">
+            <label for="quantidade">Quantidade:</label>
+            <input
+            type="number"
+            id="quantidade"
+            name="quantidade"
+            value="{{ form.get('quantidade', lote.quantidade) }}"
+            min="0"
+            max="{{ limite_quantidade }}"
+            step="1"
+            required
+        >
+        </div>
+
+        <div class="campo">
+            <label for="data_validade">Data de validade:</label>
+            <input
+            type="date"
+            id="data_validade"
+            name="data_validade"
+            value="{{ form.get('data_validade', lote.data_validade.strftime('%Y-%m-%d') if lote.data_validade else '') }}"
+            min="{{ data_minima }}"
+            max="{{ data_maxima }}"
+            required
+            oninvalid="this.setCustomValidity('Insira uma data válida.')"
+            oninput="this.setCustomValidity('')"
+        >
+        </div>
+
+        {% set situacao_atual = form.get('situacao', lote.situacao) %}
+        <div class="campo">
+            <label for="situacao">Situação:</label>
+            <select id="situacao" name="situacao" required>
+            <option value="ativo" {% if situacao_atual == 'ativo' %}selected{% endif %}>Ativo</option>
+            <option value="inativo" {% if situacao_atual == 'inativo' %}selected{% endif %}>Inativo</option>
+        </select>
+        </div>
+
+        <div class="acoes-formulario">
+            <button type="submit">Salvar alterações</button>
+            <a href="{{ url_for('lotes') }}" class="botao-secundario">Cancelar</a>
+        </div>
+
+    </form>
+</section>
+{% endblock %}
