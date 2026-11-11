@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -21,42 +22,39 @@
             {% endfor %}
 
             <form action="{{ url_for('login') }}" method="post" class="formulario-login">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="campo">
                     <label for="usuario">Usuário:</label>
                     <input
-                    type="text"
-                    id="usuario"
-                    name="usuario"
-                    value="{{ usuario }}"
-                    placeholder="Digite seu usuário"
-                    autocomplete="username"
-                    maxlength="50"
-                    required
-                    autofocus
-                >
+                        type="text"
+                        id="usuario"
+                        name="usuario"
+                        value="{{ usuario }}"
+                        placeholder="Digite seu usuário"
+                        autocomplete="username"
+                        maxlength="50"
+                        required
+                        autofocus
+                    >
                 </div>
 
                 <div class="campo">
                     <label for="senha">Senha:</label>
                     <input
-                    type="password"
-                    id="senha"
-                    name="senha"
-                    placeholder="Digite sua senha"
-                    autocomplete="current-password"
-                    required
-                >
+                        type="password"
+                        id="senha"
+                        name="senha"
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        required
+                    >
                 </div>
 
                 <button type="submit">Entrar</button>
 
             </form>
-
-            <p class="login-link">
-                <a href="{{ url_for('esqueci_senha') }}">Esqueci minha senha</a>
-            </p>
         </section>
 
         <footer class="login-footer">
