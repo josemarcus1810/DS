@@ -66,5 +66,10 @@
             {% endif %}
         </div>
     </form>
+
+    <div class="sair-redefinicao">
+        <span>Não deseja continuar agora?</span>
+        <a href="{{ url_for('logout') }}" class="botao-sair-redefinicao">Sair da conta</a>
+    </div>
 </section>
 {% endblock %}

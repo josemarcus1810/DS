@@ -51,14 +51,16 @@
 <section>
     <h3>Atualizar situação</h3>
 
-    <form action="{{ url_for('visualizar_pedido', id=pedido.id) }}" method="POST">
+    <form class="formulario-grid" action="{{ url_for('visualizar_pedido', id=pedido.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="status">Situação do pedido:</label>
-        <select id="status" name="status" required>
+        <div class="campo">
+            <label for="status">Situação do pedido:</label>
+            <select id="status" name="status" required>
             {% for s in status_pedido %}
             <option value="{{ s }}" {% if pedido.status == s %}selected{% endif %}>{{ s | maiuscula_inicial }}</option>
             {% endfor %}
         </select>
+        </div>
 
         <div class="acoes-formulario">
             <button type="submit">Salvar situação</button>

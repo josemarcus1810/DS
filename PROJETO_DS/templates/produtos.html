@@ -8,11 +8,12 @@
 <section>
     <h3>Cadastrar produto</h3>
 
-    <form action="{{ url_for('produtos') }}" method="POST">
+    <form class="formulario-grid" action="{{ url_for('produtos') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <label for="nome">Nome do produto:</label>
-        <input
+        <div class="campo">
+            <label for="nome">Nome do produto:</label>
+            <input
             type="text"
             name="nome"
             id="nome"
@@ -20,19 +21,23 @@
             maxlength="150"
             required
         >
+        </div>
 
-        <label for="tipo">Tipo do produto:</label>
-        <select name="tipo" id="tipo" required>
+        <div class="campo">
+            <label for="tipo">Tipo do produto:</label>
+            <select name="tipo" id="tipo" required>
             <option value="">Selecione um tipo</option>
             <option value="papelaria" {% if form.get('tipo') == 'papelaria' %}selected{% endif %}>Papelaria</option>
             <option value="limpeza" {% if form.get('tipo') == 'limpeza' %}selected{% endif %}>Limpeza</option>
             <option value="informatica" {% if form.get('tipo') == 'informatica' %}selected{% endif %}>Informática</option>
             <option value="outros" {% if form.get('tipo') == 'outros' %}selected{% endif %}>Outros</option>
         </select>
+        </div>
         <p class="ajuda">O código (PAP_01, LIM_01, INF_01, OUT_01...) é gerado automaticamente conforme o tipo.</p>
 
-        <label for="data_validade">Data de validade:</label>
-        <input
+        <div class="campo">
+            <label for="data_validade">Data de validade:</label>
+            <input
             type="date"
             name="data_validade"
             id="data_validade"
@@ -43,9 +48,11 @@
             oninvalid="this.setCustomValidity('Insira uma data válida.')"
             oninput="this.setCustomValidity('')"
         >
+        </div>
 
-        <label for="quantidade">Quantidade:</label>
-        <input
+        <div class="campo">
+            <label for="quantidade">Quantidade:</label>
+            <input
             type="number"
             name="quantidade"
             id="quantidade"
@@ -55,6 +62,7 @@
             step="1"
             required
         >
+        </div>
 
         <button type="submit">Cadastrar produto</button>
 

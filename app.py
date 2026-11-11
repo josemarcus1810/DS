@@ -113,6 +113,7 @@ HASH_FALSO = seguranca.gerar_hash("senha-inexistente")
 
 # Páginas que podem ser abertas sem estar logado.
 ENDPOINTS_PUBLICOS = {"login", "esqueci_senha", "static"}
+ENDPOINTS_ADMIN = {"gerenciar_usuarios"}
 
 
 # ==================================================
@@ -137,6 +138,36 @@ def abrir_banco():
     finally:
         cursor.close()
         banco.close()
+
+
+def garantir_coluna_perfil(cursor):
+    """Adiciona a coluna perfil sem apagar ou recriar a tabela de usuários."""
+    cursor.execute(
+        """
+        SELECT COUNT(*) AS total
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = 'usuarios'
+          AND column_name = 'perfil'
+        """
+    )
+    resultado = cursor.fetchone()
+    if not resultado or resultado["total"] == 0:
+        cursor.execute(
+            "ALTER TABLE usuarios ADD COLUMN perfil VARCHAR(20) NOT NULL DEFAULT 'colaborador'"
+        )
+
+    # Preserva os usuários existentes como colaboradores e reconhece a conta
+    # administrativa já utilizada no projeto.
+    cursor.execute(
+        "UPDATE usuarios SET perfil = 'admin' WHERE LOWER(usuario) = 'admin'"
+    )
+
+
+def exigir_admin():
+    """Bloqueia o acesso administrativo mesmo que alguém digite a URL."""
+    if session.get("perfil") != "admin":
+        abort(403)
 
 
 # ==================================================
@@ -448,6 +479,9 @@ def proteger_paginas():
     if "usuario_id" not in session:
         return redirect(url_for("login"))
 
+    if request.endpoint in ENDPOINTS_ADMIN and session.get("perfil") != "admin":
+        abort(403)
+
     # Troca de senha obrigatória: só libera alterar senha e sair.
     if session.get("troca_obrigatoria") and request.endpoint not in (
         "alterar_senha",
@@ -489,6 +523,7 @@ def login():
         return render_template("login.html", usuario=usuario), 429
 
     with abrir_banco() as (banco, cursor):
+        garantir_coluna_perfil(cursor)
         cursor.execute(
             """
             SELECT
@@ -497,6 +532,7 @@ def login():
                 nome,
                 senha_hash,
                 ativo,
+                perfil,
                 motivo_troca,
                 senha_alterada_em,
                 ultimo_acesso
@@ -537,6 +573,7 @@ def login():
     session["usuario_id"] = conta["id"]
     session["usuario"] = conta["usuario"]
     session["nome"] = conta["nome"]
+    session["perfil"] = conta["perfil"]
     session["acesso_anterior"] = (
         conta["ultimo_acesso"].strftime("%d/%m/%Y %H:%M")
         if conta["ultimo_acesso"] else None
@@ -1313,6 +1350,82 @@ def movimentacoes():
         filtro_produto=filtro_produto,
         filtro_tipo=filtro_tipo
     )
+
+
+# ==================================================
+# GERENCIAMENTO DE USUÁRIOS (SOMENTE ADMINISTRADOR)
+# ==================================================
+
+@app.route("/gerenciar_usuarios.html", methods=["GET", "POST"])
+def gerenciar_usuarios():
+    exigir_admin()
+    status = 200
+
+    if request.method == "POST":
+        usuario_novo = request.form.get("usuario", "").strip()
+        nome_novo = request.form.get("nome", "").strip()
+        senha_nova = request.form.get("senha", "")
+        perfil_novo = request.form.get("perfil", "colaborador").strip()
+
+        erro = None
+        if not re.fullmatch(r"[A-Za-z0-9._-]{3,50}", usuario_novo):
+            erro = "O usuário deve ter de 3 a 50 caracteres: letras, números, ponto, _ ou -."
+        elif not nome_novo or len(nome_novo) > 100:
+            erro = "Informe um nome com até 100 caracteres."
+        elif perfil_novo not in ("admin", "colaborador"):
+            erro = "Selecione um perfil válido."
+        else:
+            erro = seguranca.validar_nova_senha(senha_nova)
+
+        if erro:
+            flash(erro, "erro")
+            status = 400
+        else:
+            with abrir_banco() as (banco, cursor):
+                cursor.execute("SELECT id FROM usuarios WHERE usuario = %s", (usuario_novo,))
+                if cursor.fetchone():
+                    flash("Esse nome de usuário já está cadastrado.", "erro")
+                    status = 400
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO usuarios
+                            (usuario, nome, senha_hash, ativo, perfil, motivo_troca, senha_alterada_em)
+                        VALUES (%s, %s, %s, 1, %s, %s, %s)
+                        """,
+                        (
+                            usuario_novo,
+                            nome_novo,
+                            seguranca.gerar_hash(senha_nova),
+                            perfil_novo,
+                            seguranca.MOTIVO_SISTEMA,
+                            seguranca.agora(),
+                        )
+                    )
+                    banco.commit()
+                    flash(
+                        f"Usuário '{usuario_novo}' criado. No primeiro acesso, será solicitada a troca da senha.",
+                        "sucesso",
+                    )
+                    return redirect(url_for("gerenciar_usuarios"))
+
+    with abrir_banco() as (banco, cursor):
+        garantir_coluna_perfil(cursor)
+        banco.commit()
+        cursor.execute(
+            """
+            SELECT id, usuario, nome, perfil, ativo, data_criacao
+            FROM usuarios
+            ORDER BY nome, usuario
+            """
+        )
+        usuarios_cadastrados = cursor.fetchall()
+
+    return render_template(
+        "gerenciar_usuarios.html",
+        usuarios=usuarios_cadastrados,
+        tamanho_minimo=seguranca.TAMANHO_MINIMO_SENHA,
+    ), status
 
 
 # ==================================================

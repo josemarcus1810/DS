@@ -29,6 +29,11 @@
                         <a href="{{ url_for(endpoint) }}"{% if request.endpoint in ativos %} class="ativo"{% endif %}>{{ texto }}</a>
                     </li>
                     {% endfor %}
+                    {% if session.get('perfil') == 'admin' %}
+                    <li>
+                        <a href="{{ url_for('gerenciar_usuarios') }}"{% if request.endpoint == 'gerenciar_usuarios' %} class="ativo"{% endif %}>Gerenciar usuários</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </nav>
 

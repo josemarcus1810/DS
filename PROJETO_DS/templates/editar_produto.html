@@ -8,18 +8,23 @@
 <section>
     <h3>Dados do produto</h3>
 
-    <form action="{{ url_for('editar_produto', id=produto.id) }}" method="POST">
+    <form class="formulario-grid" action="{{ url_for('editar_produto', id=produto.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <label for="codigo">Código do produto:</label>
-        <input type="text" id="codigo" value="{{ produto.codigo }}" readonly>
+        <div class="campo">
+            <label for="codigo">Código do produto:</label>
+            <input type="text" id="codigo" value="{{ produto.codigo }}" readonly>
+        </div>
 
-        <label for="tipo">Tipo do produto:</label>
-        <input type="text" id="tipo" value="{{ produto.tipo | rotulo_tipo }}" readonly>
+        <div class="campo">
+            <label for="tipo">Tipo do produto:</label>
+            <input type="text" id="tipo" value="{{ produto.tipo | rotulo_tipo }}" readonly>
+        </div>
         <p class="ajuda">O tipo não pode ser alterado, pois o código do produto (prefixo {{ produto.codigo.split('_')[0] }}) depende dele.</p>
 
-        <label for="nome">Nome do produto:</label>
-        <input
+        <div class="campo">
+            <label for="nome">Nome do produto:</label>
+            <input
             type="text"
             id="nome"
             name="nome"
@@ -27,9 +32,11 @@
             maxlength="150"
             required
         >
+        </div>
 
-        <label for="data_validade">Data de validade:</label>
-        <input
+        <div class="campo">
+            <label for="data_validade">Data de validade:</label>
+            <input
             type="date"
             name="data_validade"
             id="data_validade"
@@ -40,9 +47,11 @@
             oninvalid="this.setCustomValidity('Insira uma data válida.')"
             oninput="this.setCustomValidity('')"
         >
+        </div>
 
-        <label for="quantidade">Quantidade:</label>
-        <input
+        <div class="campo">
+            <label for="quantidade">Quantidade:</label>
+            <input
             type="number"
             id="quantidade"
             name="quantidade"
@@ -52,13 +61,16 @@
             step="1"
             required
         >
+        </div>
 
         {% set situacao_atual = form.get('situacao', produto.situacao) %}
-        <label for="situacao">Situação:</label>
-        <select id="situacao" name="situacao" required>
+        <div class="campo">
+            <label for="situacao">Situação:</label>
+            <select id="situacao" name="situacao" required>
             <option value="disponível" {% if situacao_atual == 'disponível' %}selected{% endif %}>Disponível</option>
             <option value="indisponível" {% if situacao_atual == 'indisponível' %}selected{% endif %}>Indisponível</option>
         </select>
+        </div>
 
         <div class="acoes-formulario">
             <button type="submit">Salvar alterações</button>

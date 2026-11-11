@@ -425,6 +425,38 @@ input[readonly] {
     display: contents;
 }
 
+/* Ação de saída sempre disponível na tela de redefinição de senha */
+.sair-redefinicao {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cor-borda);
+    color: var(--cor-texto-secundario);
+    font-size: 13px;
+}
+
+.botao-sair-redefinicao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 8px 16px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 8px;
+    color: var(--cor-primaria);
+    background: #FFFFFF;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.botao-sair-redefinicao:hover {
+    background: var(--cor-fundo-claro);
+}
+
 /* 9. BOTÕES E LINKS */
 
 button {
@@ -934,4 +966,12 @@ footer p {
     .login-card {
         padding: 25px 20px;
     }
+}
+
+
+/* GERENCIAMENTO DE USUÁRIOS */
+.texto-ajuda {
+    margin: 5px 0 16px;
+    color: var(--cor-texto-secundario);
+    font-size: 13px;
 }

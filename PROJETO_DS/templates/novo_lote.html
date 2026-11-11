@@ -8,11 +8,12 @@
 <section>
     <h3>Dados do lote</h3>
 
-    <form action="{{ url_for('novo_lote') }}" method="POST" autocomplete="off">
+    <form class="formulario-grid" action="{{ url_for('novo_lote') }}" method="POST" autocomplete="off">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <label for="produto">Produto (digite o nome ou o código e escolha na lista):</label>
-        <input
+        <div class="campo">
+            <label for="produto">Produto (digite o nome ou o código e escolha na lista):</label>
+            <input
             type="text"
             name="produto"
             id="produto"
@@ -21,6 +22,7 @@
             placeholder="Ex.: PAP_01 ou nome do produto"
             required
         >
+        </div>
         <datalist id="lista-produtos">
             {% for produto in produtos %}
             <option value="{{ produto.codigo }} - {{ produto.nome }}"></option>
@@ -31,8 +33,9 @@
         <p class="ajuda">Nenhum produto disponível. <a href="{{ url_for('produtos') }}">Cadastre um produto</a> primeiro.</p>
         {% endif %}
 
-        <label for="quantidade">Quantidade do lote:</label>
-        <input
+        <div class="campo">
+            <label for="quantidade">Quantidade do lote:</label>
+            <input
             type="number"
             name="quantidade"
             id="quantidade"
@@ -42,9 +45,11 @@
             step="1"
             required
         >
+        </div>
 
-        <label for="data_validade">Data de validade:</label>
-        <input
+        <div class="campo">
+            <label for="data_validade">Data de validade:</label>
+            <input
             type="date"
             name="data_validade"
             id="data_validade"
@@ -55,6 +60,7 @@
             oninvalid="this.setCustomValidity('Insira uma data válida.')"
             oninput="this.setCustomValidity('')"
         >
+        </div>
 
         <p class="ajuda">O número do lote (LOTE_01, LOTE_02...) é gerado automaticamente.</p>
 

@@ -8,17 +8,22 @@
 <section>
     <h3>Dados do lote</h3>
 
-    <form action="{{ url_for('editar_lote', id=lote.id) }}" method="POST">
+    <form class="formulario-grid" action="{{ url_for('editar_lote', id=lote.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <label for="numero_lote">Número do lote:</label>
-        <input type="text" id="numero_lote" value="{{ lote.numero_lote }}" readonly>
+        <div class="campo">
+            <label for="numero_lote">Número do lote:</label>
+            <input type="text" id="numero_lote" value="{{ lote.numero_lote }}" readonly>
+        </div>
 
-        <label for="produto">Produto:</label>
-        <input type="text" id="produto" value="{{ lote.codigo_produto }} - {{ lote.nome_produto }}" readonly>
+        <div class="campo">
+            <label for="produto">Produto:</label>
+            <input type="text" id="produto" value="{{ lote.codigo_produto }} - {{ lote.nome_produto }}" readonly>
+        </div>
 
-        <label for="quantidade">Quantidade:</label>
-        <input
+        <div class="campo">
+            <label for="quantidade">Quantidade:</label>
+            <input
             type="number"
             id="quantidade"
             name="quantidade"
@@ -28,9 +33,11 @@
             step="1"
             required
         >
+        </div>
 
-        <label for="data_validade">Data de validade:</label>
-        <input
+        <div class="campo">
+            <label for="data_validade">Data de validade:</label>
+            <input
             type="date"
             id="data_validade"
             name="data_validade"
@@ -41,13 +48,16 @@
             oninvalid="this.setCustomValidity('Insira uma data válida.')"
             oninput="this.setCustomValidity('')"
         >
+        </div>
 
         {% set situacao_atual = form.get('situacao', lote.situacao) %}
-        <label for="situacao">Situação:</label>
-        <select id="situacao" name="situacao" required>
+        <div class="campo">
+            <label for="situacao">Situação:</label>
+            <select id="situacao" name="situacao" required>
             <option value="ativo" {% if situacao_atual == 'ativo' %}selected{% endif %}>Ativo</option>
             <option value="inativo" {% if situacao_atual == 'inativo' %}selected{% endif %}>Inativo</option>
         </select>
+        </div>
 
         <div class="acoes-formulario">
             <button type="submit">Salvar alterações</button>

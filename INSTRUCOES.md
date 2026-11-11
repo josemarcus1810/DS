@@ -205,3 +205,15 @@ No GitHub, envie os arquivos alterados (**Add file → Upload files**) e clique 
 - Nunca coloque senhas dentro dos arquivos nem no GitHub. Use as variáveis de ambiente.
 - O sistema bloqueia tentativas repetidas de login e protege os formulários, mas é um projeto escolar: não guarde dados sensíveis reais nele.
 - Troque a senha de vez em quando e faça backup.
+
+
+ATUALIZAÇÃO - GERENCIAMENTO DE USUÁRIOS
+--------------------------------------
+Depois de substituir os arquivos pela versão atualizada e iniciar o sistema,
+a coluna `perfil` será adicionada automaticamente à tabela `usuarios` no
+primeiro login. A conta com nome de usuário `admin` será reconhecida como
+Administradora. Nenhuma tabela ou registro existente será apagado.
+
+Para cadastrar pessoas: entre com a conta admin, abra “Gerenciar usuários”
+no menu lateral, preencha os dados e clique em “Cadastrar usuário”. A senha
+inicial será trocada pelo próprio usuário no primeiro acesso.

@@ -20,11 +20,12 @@
             <div class="mensagem mensagem-{{ categoria }}" role="alert">{{ mensagem }}</div>
             {% endfor %}
 
-            <form action="{{ url_for('login') }}" method="post">
+            <form action="{{ url_for('login') }}" method="post" class="formulario-login">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <label for="usuario">Usuário:</label>
-                <input
+                <div class="campo">
+                    <label for="usuario">Usuário:</label>
+                    <input
                     type="text"
                     id="usuario"
                     name="usuario"
@@ -35,9 +36,11 @@
                     required
                     autofocus
                 >
+                </div>
 
-                <label for="senha">Senha:</label>
-                <input
+                <div class="campo">
+                    <label for="senha">Senha:</label>
+                    <input
                     type="password"
                     id="senha"
                     name="senha"
@@ -45,6 +48,7 @@
                     autocomplete="current-password"
                     required
                 >
+                </div>
 
                 <button type="submit">Entrar</button>
 

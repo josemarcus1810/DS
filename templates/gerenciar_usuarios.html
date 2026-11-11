@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block titulo %}Gerenciar usuários{% endblock %}
+{% block cabecalho_titulo %}Gerenciar usuários{% endblock %}
+{% block cabecalho_texto %}Cadastre novas contas e consulte os usuários do sistema.{% endblock %}
+
+{% block conteudo %}
+<section>
+    <h3>Novo usuário</h3>
+    <p class="texto-ajuda">Preencha os dados abaixo. A pessoa deverá criar uma nova senha no primeiro acesso.</p>
+
+    <form method="post" class="formulario-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="campo">
+            <label for="nome">Nome completo</label>
+            <input type="text" id="nome" name="nome" maxlength="100" placeholder="Ex.: Maria da Silva" required>
+        </div>
+
+        <div class="campo">
+            <label for="usuario">Nome de usuário</label>
+            <input type="text" id="usuario" name="usuario" maxlength="50" pattern="[A-Za-z0-9._-]{3,50}" placeholder="Ex.: maria.silva" autocomplete="off" required>
+        </div>
+
+        <div class="campo">
+            <label for="senha">Senha inicial</label>
+            <input type="password" id="senha" name="senha" minlength="{{ tamanho_minimo }}" autocomplete="new-password" required>
+        </div>
+
+        <div class="campo">
+            <label for="perfil">Tipo de acesso</label>
+            <select id="perfil" name="perfil" required>
+                <option value="colaborador" selected>Colaborador</option>
+                <option value="admin">Administrador</option>
+            </select>
+        </div>
+
+        <p class="ajuda">A senha deve ter pelo menos {{ tamanho_minimo }} caracteres e conter um caractere especial, como ! @ # ou $.</p>
+
+        <div class="acoes-formulario">
+            <button type="submit">Cadastrar usuário</button>
+        </div>
+    </form>
+</section>
+
+<section>
+    <h3>Usuários cadastrados</h3>
+    {% if usuarios %}
+    <div class="tabela-rolavel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Usuário</th>
+                    <th>Perfil</th>
+                    <th>Situação</th>
+                    <th>Data de cadastro</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conta in usuarios %}
+                <tr>
+                    <td>{{ conta.nome }}</td>
+                    <td>{{ conta.usuario }}</td>
+                    <td>{{ 'Administrador' if conta.perfil == 'admin' else 'Colaborador' }}</td>
+                    <td>{{ 'Ativo' if conta.ativo else 'Inativo' }}</td>
+                    <td>{{ conta.data_criacao | datahora_br }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>Nenhum usuário cadastrado.</p>
+    {% endif %}
+</section>
+{% endblock %}
