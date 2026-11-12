@@ -975,3 +975,43 @@ footer p {
     color: var(--cor-texto-secundario);
     font-size: 13px;
 }
+
+.voltar-login {
+    text-align: center;
+    margin-top: 24px;
+}
+
+.link-voltar-login {
+    display: inline-block;
+    color: #1F6F4B;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.link-voltar-login:hover {
+    color: #0F2E23;
+    text-decoration: underline;
+}
+
+.esqueci-senha {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -8px;
+    margin-bottom: 18px;
+    width: 100%;
+}
+
+.esqueci-senha a {
+    color: #6B6B6B;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.esqueci-senha a:hover {
+    color: #1F6F4B;
+    text-decoration: underline;
+}
