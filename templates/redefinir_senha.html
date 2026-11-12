@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir senha - Almoxarifado</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="pagina-login">
+
+    <main class="login-container">
+        <section class="login-card">
+
+            <h1>Redefinir senha</h1>
+
+            <p>
+                Crie uma nova senha para acessar o Sistema de Almoxarifado.
+            </p>
+
+            {% with mensagens = get_flashed_messages(with_categories=true) %}
+                {% for categoria, mensagem in mensagens %}
+                    <div class="mensagem {{ categoria }}">
+                        {{ mensagem }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            <form method="POST">
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                <label for="usuario">Usuário</label>
+                <input
+                    type="text"
+                    id="usuario"
+                    name="usuario"
+                    value="{{ usuario }}"
+                    required
+                >
+
+                <label for="nova_senha">Nova senha</label>
+                <input
+                    type="password"
+                    id="nova_senha"
+                    name="nova_senha"
+                    minlength="{{ tamanho_minimo }}"
+                    placeholder="Digite sua nova senha"
+                    required
+                >
+
+                <label for="confirmar_senha">Confirmar nova senha</label>
+                <input
+                    type="password"
+                    id="confirmar_senha"
+                    name="confirmar_senha"
+                    minlength="{{ tamanho_minimo }}"
+                    placeholder="Digite novamente sua senha"
+                    required
+                >
+
+                <button type="submit">
+                    Salvar nova senha
+                </button>
+
+            </form>
+
+            <div class="voltar-login">
+                <a href="{{ url_for('login') }}" class="link-voltar-login">
+                    ← Voltar para o login
+                </a>
+            </div>
+
+        </section>
+    </main>
+
+</body>
+</html>
