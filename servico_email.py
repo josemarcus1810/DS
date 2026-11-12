@@ -1,37 +1,83 @@
 
 import os
-import ssl
-import smtplib
+import json
+import urllib.request
+import urllib.error
 
 from dotenv import load_dotenv
-from email.message import EmailMessage
 
 load_dotenv()
 
 
 def enviar_email(destinatario, assunto, mensagem):
-    servidor = os.getenv("SMTP_SERVER")
-    porta = int(os.getenv("SMTP_PORT", "587"))
-    login = os.getenv("SMTP_LOGIN")
-    senha = os.getenv("SMTP_PASSWORD")
+    api_key = os.getenv("BREVO_API_KEY")
     remetente = os.getenv("EMAIL_REMETENTE")
 
-    if not all([servidor, login, senha, remetente]):
-        raise RuntimeError("Configurações SMTP incompletas no ambiente.")
+    if not api_key:
+        raise RuntimeError(
+            "A variável BREVO_API_KEY não está configurada."
+        )
 
-    email = EmailMessage()
-    email["Subject"] = assunto
-    email["From"] = remetente
-    email["To"] = destinatario
-    email.set_content(mensagem)
+    if not remetente:
+        raise RuntimeError(
+            "A variável EMAIL_REMETENTE não está configurada."
+        )
 
-    contexto = ssl.create_default_context()
+    dados = {
+        "sender": {
+            "name": "Sistema de Almoxarifado",
+            "email": remetente
+        },
+        "to": [
+            {
+                "email": destinatario
+            }
+        ],
+        "subject": assunto,
+        "textContent": mensagem
+    }
 
-    with smtplib.SMTP(servidor, porta, timeout=20) as smtp:
-        smtp.ehlo()
-        smtp.starttls(context=contexto)
-        smtp.ehlo()
-        smtp.login(login, senha)
-        smtp.send_message(email)
+    corpo = json.dumps(dados).encode("utf-8")
 
-    return True
+    requisicao = urllib.request.Request(
+        url="https://api.brevo.com/v3/smtp/email",
+        data=corpo,
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(
+            requisicao,
+            timeout=30
+        ) as resposta:
+
+            resultado = json.loads(
+                resposta.read().decode("utf-8")
+            )
+
+            print(
+                "E-mail enviado pela Brevo:",
+                resultado.get("messageId")
+            )
+
+            return True
+
+    except urllib.error.HTTPError as erro:
+        detalhes = erro.read().decode(
+            "utf-8",
+            errors="replace"
+        )
+
+        raise RuntimeError(
+            f"Erro da API Brevo ({erro.code}): {detalhes}"
+        )
+
+    except urllib.error.URLError as erro:
+        raise RuntimeError(
+            f"Falha de conexão com a API Brevo: {erro.reason}"
+        )
