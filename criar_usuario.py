@@ -1,12 +1,3 @@
-"""
-Cria um usuário do sistema (execute uma vez para criar o primeiro acesso).
-
-Uso (no terminal, com o ambiente virtual ativado):
-    python criar_usuario.py
-
-A senha é pedida no terminal e guardada apenas como hash.
-Antes, execute o arquivo atualizacao_banco.sql para criar a tabela usuarios.
-"""
 
 import getpass
 import re
@@ -16,14 +7,25 @@ from conexao import conectar
 
 def main():
     print("=== Criar usuário do Sistema de Almoxarifado ===")
+    print()
 
-    usuario = input("Nome de usuário (letras, números, . _ -): ").strip()
+    usuario = input("Nome de usuário (login): ").strip()
 
     if not re.fullmatch(r"[A-Za-z0-9._-]{3,50}", usuario):
-        print("Usuário inválido. Use de 3 a 50 caracteres: letras, números, . _ -")
+        print("Usuário inválido. Use de 3 a 50 caracteres.")
         return
 
-    nome = input("Nome completo: ").strip() or usuario
+    nome = input("Nome completo: ").strip()
+
+    if not nome or len(nome) > 100:
+        print("Informe um nome válido.")
+        return
+
+    email = input("E-mail do colaborador: ").strip().lower()
+
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        print("Informe um endereço de e-mail válido.")
+        return
 
     senha = getpass.getpass("Senha: ")
     erro = seguranca.validar_nova_senha(senha)
@@ -40,21 +42,34 @@ def main():
     cursor = banco.cursor()
 
     try:
-        cursor.execute("SELECT id FROM usuarios WHERE usuario = %s", (usuario,))
+        cursor.execute(
+            "SELECT id FROM usuarios WHERE usuario = %s",
+            (usuario,)
+        )
 
         if cursor.fetchone():
-            print("Esse usuário já existe. Para trocar a senha dele, use redefinir_senha.py")
+            print("Esse usuário já existe.")
             return
 
         cursor.execute(
             """
-            INSERT INTO usuarios (usuario, nome, senha_hash, senha_alterada_em)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO usuarios
+            (usuario, nome, email, senha_hash, senha_alterada_em)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (usuario, nome, seguranca.gerar_hash(senha), seguranca.agora())
+            (
+                usuario,
+                nome,
+                email,
+                seguranca.gerar_hash(senha),
+                seguranca.agora()
+            )
         )
+
         banco.commit()
-        print(f"Usuário '{usuario}' criado com sucesso.")
+        print()
+        print(f"Usuário '{usuario}' criado com sucesso!")
+        print("E-mail cadastrado:", email)
 
     except Exception as erro_banco:
         banco.rollback()

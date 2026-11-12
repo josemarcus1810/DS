@@ -1,4 +1,5 @@
 import hmac
+import hashlib
 import os
 import re
 import secrets
@@ -24,6 +25,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import seguranca
 from conexao import conectar
+from servico_email import enviar_email
 
 app = Flask(__name__)
 
@@ -112,7 +114,12 @@ falhas_de_login = {}
 HASH_FALSO = seguranca.gerar_hash("senha-inexistente")
 
 # Páginas que podem ser abertas sem estar logado.
-ENDPOINTS_PUBLICOS = {"login", "esqueci_senha", "static"}
+ENDPOINTS_PUBLICOS = {
+    "login",
+    "esqueci_senha",
+    "redefinir_senha",
+    "static",
+}
 ENDPOINTS_ADMIN = {"gerenciar_usuarios"}
 
 
@@ -595,9 +602,213 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/esqueci_senha.html")
+@app.route("/esqueci_senha.html", methods=["GET", "POST"])
 def esqueci_senha():
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        usuario = request.form.get("usuario", "").strip()
+        email = request.form.get("email", "").strip().lower()
+
+        mensagem = (
+            "Se os dados corresponderem a uma conta ativa, "
+            "você receberá um link de recuperação no e-mail informado."
+        )
+
+        with abrir_banco() as (banco, cursor):
+            cursor.execute(
+                """
+                SELECT id, nome, usuario, email
+                FROM usuarios
+                WHERE LOWER(nome) = LOWER(%s)
+                  AND LOWER(usuario) = LOWER(%s)
+                  AND LOWER(email) = LOWER(%s)
+                  AND ativo = 1
+                """,
+                (nome, usuario, email)
+            )
+            conta = cursor.fetchone()
+
+            if conta:
+                token = secrets.token_urlsafe(32)
+                token_hash = hashlib.sha256(
+                    token.encode("utf-8")
+                ).hexdigest()
+
+                # Invalida códigos anteriores ainda não utilizados.
+                cursor.execute(
+                    """
+                    DELETE FROM tokens_recuperacao
+                    WHERE usuario_id = %s
+                      AND usado_em IS NULL
+                    """,
+                    (conta["id"],)
+                )
+
+                cursor.execute(
+                    """
+                    INSERT INTO tokens_recuperacao
+                        (usuario_id, token_hash, expira_em)
+                    VALUES (%s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))
+                    """,
+                    (conta["id"], token_hash)
+                )
+                banco.commit()
+
+                link = url_for(
+                    "redefinir_senha",
+                    token=token,
+                    _external=True
+                )
+
+                try:
+                    enviar_email(
+                        email,
+                        "Recuperação de senha - Almoxarifado",
+                        (
+                            f"Olá, {conta['nome']}!\n\n"
+                            "Recebemos uma solicitação para redefinir a senha "
+                            "da sua conta no Sistema de Almoxarifado.\n\n"
+                            "Para criar uma nova senha, acesse o link abaixo:\n\n"
+                            f"{link}\n\n"
+                            "IMPORTANTE:\n"
+                            "- O link é válido por 30 minutos.\n"
+                            "- Ele só pode ser utilizado uma vez.\n\n"
+                            "Se você não solicitou essa alteração, ignore este e-mail.\n\n"
+                            "Atenciosamente,\n"
+                            "Equipe do Almoxarifado"
+                        )
+                    )
+                except Exception:
+                    app.logger.exception(
+                        "Falha ao enviar e-mail de recuperação."
+                    )
+                    cursor.execute(
+                        """
+                        DELETE FROM tokens_recuperacao
+                        WHERE token_hash = %s
+                        """,
+                        (token_hash,)
+                    )
+                    banco.commit()
+
+        flash(mensagem, "info")
+        return redirect(url_for("esqueci_senha"))
+
     return render_template("esqueci_senha.html")
+
+
+@app.route("/redefinir_senha/<token>", methods=["GET", "POST"])
+def redefinir_senha(token):
+    token_hash = hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
+
+    with abrir_banco() as (banco, cursor):
+        cursor.execute(
+            """
+            SELECT t.id, t.usuario_id, u.usuario
+            FROM tokens_recuperacao t
+            INNER JOIN usuarios u ON u.id = t.usuario_id
+            WHERE t.token_hash = %s
+              AND t.usado_em IS NULL
+              AND t.expira_em > NOW()
+              AND u.ativo = 1
+            """,
+            (token_hash,)
+        )
+        recuperacao = cursor.fetchone()
+
+    if recuperacao is None:
+        flash(
+            "Este link é inválido, já foi utilizado ou expirou. "
+            "Solicite uma nova recuperação.",
+            "erro"
+        )
+        return redirect(url_for("esqueci_senha"))
+
+    if request.method == "POST":
+        usuario = request.form.get("usuario", "").strip()
+        nova_senha = request.form.get("nova_senha", "")
+        confirmar = request.form.get("confirmar_senha", "")
+
+        erro = None
+
+        if usuario.lower() != recuperacao["usuario"].lower():
+            erro = "O nome de usuário informado não corresponde à conta."
+        elif nova_senha != confirmar:
+            erro = "A confirmação da senha não corresponde."
+        else:
+            erro = seguranca.validar_nova_senha(nova_senha)
+
+        if erro:
+            flash(erro, "erro")
+            return render_template(
+                "redefinir_senha.html",
+                token=token,
+                usuario=usuario,
+                tamanho_minimo=seguranca.TAMANHO_MINIMO_SENHA
+            ), 400
+
+        with abrir_banco() as (banco, cursor):
+            # Confere novamente se o código ainda é válido.
+            cursor.execute(
+                """
+                SELECT id
+                FROM tokens_recuperacao
+                WHERE id = %s
+                  AND usado_em IS NULL
+                  AND expira_em > NOW()
+                """,
+                (recuperacao["id"],)
+            )
+
+            if cursor.fetchone() is None:
+                flash(
+                    "Este link não está mais válido. Solicite outro.",
+                    "erro"
+                )
+                return redirect(url_for("esqueci_senha"))
+
+            cursor.execute(
+                """
+                UPDATE usuarios
+                SET senha_hash = %s,
+                    senha_alterada_em = %s,
+                    motivo_troca = NULL
+                WHERE id = %s
+                """,
+                (
+                    seguranca.gerar_hash(nova_senha),
+                    seguranca.agora(),
+                    recuperacao["usuario_id"]
+                )
+            )
+
+            cursor.execute(
+                """
+                UPDATE tokens_recuperacao
+                SET usado_em = NOW()
+                WHERE id = %s
+                """,
+                (recuperacao["id"],)
+            )
+
+            banco.commit()
+
+        flash(
+            "Senha redefinida com sucesso! Você já pode entrar no sistema.",
+            "sucesso"
+        )
+        return redirect(url_for("login"))
+
+    return render_template(
+        "redefinir_senha.html",
+        token=token,
+        usuario=recuperacao["usuario"],
+        tamanho_minimo=seguranca.TAMANHO_MINIMO_SENHA
+    )
+
+
 
 
 # ==================================================
@@ -1364,6 +1575,7 @@ def gerenciar_usuarios():
     if request.method == "POST":
         usuario_novo = request.form.get("usuario", "").strip()
         nome_novo = request.form.get("nome", "").strip()
+        email_novo = request.form.get("email", "").strip().lower()
         senha_nova = request.form.get("senha", "")
         perfil_novo = request.form.get("perfil", "colaborador").strip()
 
@@ -1372,6 +1584,8 @@ def gerenciar_usuarios():
             erro = "O usuário deve ter de 3 a 50 caracteres: letras, números, ponto, _ ou -."
         elif not nome_novo or len(nome_novo) > 100:
             erro = "Informe um nome com até 100 caracteres."
+        elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_novo):
+            erro = "Informe um endereço de e-mail válido."    
         elif perfil_novo not in ("admin", "colaborador"):
             erro = "Selecione um perfil válido."
         else:
@@ -1390,12 +1604,13 @@ def gerenciar_usuarios():
                     cursor.execute(
                         """
                         INSERT INTO usuarios
-                            (usuario, nome, senha_hash, ativo, perfil, motivo_troca, senha_alterada_em)
-                        VALUES (%s, %s, %s, 1, %s, %s, %s)
+                            (usuario, nome, email, senha_hash, ativo, perfil, motivo_troca, senha_alterada_em)
+                        VALUES (%s, %s, %s, %s, 1, %s, %s, %s)
                         """,
                         (
                             usuario_novo,
                             nome_novo,
+                            email_novo,
                             seguranca.gerar_hash(senha_nova),
                             perfil_novo,
                             seguranca.MOTIVO_SISTEMA,
