@@ -10,7 +10,7 @@ load_dotenv()
 
 
 def enviar_email(destinatario, assunto, mensagem):
-    api_key = os.getenv("BREVO_API_KEY")
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
     remetente = os.getenv("EMAIL_REMETENTE")
 
     if not api_key:
