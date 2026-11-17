@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -26,19 +27,35 @@
                 <ul>
                     {% for endpoint, texto, ativos in menu %}
                     <li>
-                        <a href="{{ url_for(endpoint) }}"{% if request.endpoint in ativos %} class="ativo"{% endif %}>{{ texto }}</a>
+                        <a href="{{ url_for(endpoint) }}"
+                           {% if request.endpoint in ativos %}class="ativo"{% endif %}>
+                            {{ texto }}
+                        </a>
                     </li>
                     {% endfor %}
+
                     {% if session.get('perfil') == 'admin' %}
                     <li>
-                        <a href="{{ url_for('gerenciar_usuarios') }}"{% if request.endpoint == 'gerenciar_usuarios' %} class="ativo"{% endif %}>Gerenciar usuários</a>
+                        <a href="{{ url_for('gerenciar_usuarios') }}"
+                           {% if request.endpoint == 'gerenciar_usuarios' or request.endpoint == 'editar_usuario' %}class="ativo"{% endif %}>
+                            Gerenciar usuários
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ url_for('historico_usuarios') }}"
+                           {% if request.endpoint == 'historico_usuarios' %}class="ativo"{% endif %}>
+                            Histórico de atividades
+                        </a>
                     </li>
                     {% endif %}
                 </ul>
             </nav>
 
             {% if session.get('usuario') %}
-            <p class="sidebar-usuario">Conectado como <strong>{{ session['usuario'] }}</strong></p>
+            <p class="sidebar-usuario">
+                Conectado como <strong>{{ session['usuario'] }}</strong>
+            </p>
             {% endif %}
 
             <a href="{{ url_for('logout') }}" class="sair">Sair</a>
@@ -55,7 +72,9 @@
 
             <main>
                 {% for categoria, mensagem in get_flashed_messages(with_categories=true) %}
-                <div class="mensagem mensagem-{{ categoria }}" role="alert">{{ mensagem }}</div>
+                <div class="mensagem mensagem-{{ categoria }}" role="alert">
+                    {{ mensagem }}
+                </div>
                 {% endfor %}
 
                 {% block conteudo %}{% endblock %}
@@ -69,5 +88,7 @@
     </div>
 
     {% block scripts %}{% endblock %}
+
 </body>
 </html>
+```
