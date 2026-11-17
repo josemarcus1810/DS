@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Editar usuário{% endblock %}
+{% block cabecalho_titulo %}Editar usuário{% endblock %}
+{% block cabecalho_texto %}Atualize os dados e as permissões da conta selecionada.{% endblock %}
+{% block conteudo %}
+<section class="cartao-edicao-usuario">
+    <div class="identificacao-conta">
+        <div class="avatar-conta">{{ (conta.nome or conta.usuario)[:1]|upper }}</div>
+        <div><h3>{{ conta.nome }}</h3><p class="ajuda">Usuário: <strong>{{ conta.usuario }}</strong></p></div>
+    </div>
+    <form method="post" class="formulario-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo"><label for="nome">Nome completo</label><input type="text" id="nome" name="nome" maxlength="100" value="{{ form.get('nome', conta.nome) }}" required></div>
+        <div class="campo"><label for="email">E-mail</label><input type="email" id="email" name="email" maxlength="254" value="{{ form.get('email', conta.email or '') }}" required></div>
+        <div class="campo"><label for="perfil">Tipo de acesso</label><select id="perfil" name="perfil" required><option value="colaborador" {% if form.get('perfil', conta.perfil) == 'colaborador' %}selected{% endif %}>Colaborador</option><option value="admin" {% if form.get('perfil', conta.perfil) == 'admin' %}selected{% endif %}>Administrador</option></select></div>
+        <div class="campo"><label for="ativo">Situação da conta</label><select id="ativo" name="ativo" required><option value="1" {% if form.get('ativo', '1' if conta.ativo else '0') == '1' %}selected{% endif %}>Ativo</option><option value="0" {% if form.get('ativo', '1' if conta.ativo else '0') == '0' %}selected{% endif %}>Inativo</option></select></div>
+        <div class="acoes-formulario"><button type="submit">Salvar alterações</button><a href="{{ url_for('gerenciar_usuarios') }}" class="botao-secundario">Cancelar</a></div>
+    </form>
+</section>
+<style>
+.cartao-edicao-usuario{max-width:900px}.identificacao-conta{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #D9E2DC}.identificacao-conta h3{margin:0 0 3px;color:#0F2E23}.identificacao-conta p{margin:0}.avatar-conta{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#E9F5EE;color:#1F6F4B;font-size:21px;font-weight:800}.cartao-edicao-usuario .acoes-formulario{align-items:center}.cartao-edicao-usuario .botao-secundario{margin-top:0}
+</style>
+{% endblock %}

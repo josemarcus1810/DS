@@ -1,88 +1,75 @@
 {% extends "base.html" %}
-
 {% block titulo %}Gerenciar usuários{% endblock %}
 {% block cabecalho_titulo %}Gerenciar usuários{% endblock %}
-{% block cabecalho_texto %}Cadastre novas contas e consulte os usuários do sistema.{% endblock %}
+{% block cabecalho_texto %}Cadastre, consulte e administre as contas do sistema.{% endblock %}
 
 {% block conteudo %}
 <section>
     <h3>Novo usuário</h3>
     <p class="texto-ajuda">Preencha os dados abaixo. A pessoa deverá criar uma nova senha no primeiro acesso.</p>
-
     <form method="post" class="formulario-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <div class="campo">
-            <label for="nome">Nome completo</label>
-            <input type="text" id="nome" name="nome" maxlength="100" placeholder="Ex.: Maria da Silva" required>
-        </div>
-        <div class="campo">
-            <label for="email">E-mail do colaborador</label>
-            <input
-                type="email"
-                id="email"
-                name="email"
-                maxlength="254"
-                placeholder="Ex.: colaborador@gmail.com"
-                required
-            >
-        </div>
-
-        <div class="campo">
-            <label for="usuario">Nome de usuário</label>
-            <input type="text" id="usuario" name="usuario" maxlength="50" pattern="[A-Za-z0-9._-]{3,50}" placeholder="Ex.: maria.silva" autocomplete="off" required>
-        </div>
-
-        <div class="campo">
-            <label for="senha">Senha inicial</label>
-            <input type="password" id="senha" name="senha" minlength="{{ tamanho_minimo }}" autocomplete="new-password" required>
-        </div>
-
-        <div class="campo">
-            <label for="perfil">Tipo de acesso</label>
-            <select id="perfil" name="perfil" required>
-                <option value="colaborador" selected>Colaborador</option>
-                <option value="admin">Administrador</option>
-            </select>
-        </div>
-
+        <div class="campo"><label for="nome">Nome completo</label><input type="text" id="nome" name="nome" maxlength="100" placeholder="Ex.: Maria da Silva" required></div>
+        <div class="campo"><label for="email">E-mail do colaborador</label><input type="email" id="email" name="email" maxlength="254" placeholder="Ex.: colaborador@gmail.com" required></div>
+        <div class="campo"><label for="usuario">Nome de usuário</label><input type="text" id="usuario" name="usuario" maxlength="50" pattern="[A-Za-z0-9._-]{3,50}" placeholder="Ex.: maria.silva" autocomplete="off" required></div>
+        <div class="campo"><label for="senha">Senha inicial</label><input type="password" id="senha" name="senha" minlength="{{ tamanho_minimo }}" autocomplete="new-password" required></div>
+        <div class="campo"><label for="perfil">Tipo de acesso</label><select id="perfil" name="perfil" required><option value="colaborador" selected>Colaborador</option><option value="admin">Administrador</option></select></div>
         <p class="ajuda">A senha deve ter pelo menos {{ tamanho_minimo }} caracteres e conter um caractere especial, como ! @ # ou $.</p>
-
-        <div class="acoes-formulario">
-            <button type="submit">Cadastrar usuário</button>
-        </div>
+        <div class="acoes-formulario"><button type="submit">Cadastrar usuário</button></div>
     </form>
 </section>
 
 <section>
-    <h3>Usuários cadastrados</h3>
+    <div class="cabecalho-tabela-usuarios">
+        <div><h3>Usuários cadastrados</h3><p class="ajuda">Use os botões de cada linha para administrar a conta.</p></div>
+        <span class="contador-usuarios">{{ usuarios|length }} conta(s)</span>
+    </div>
     {% if usuarios %}
     <div class="tabela-rolavel">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Usuário</th>
-                    <th>Perfil</th>
-                    <th>Situação</th>
-                    <th>Data de cadastro</th>
-                </tr>
-            </thead>
+        <table class="tabela-usuarios">
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Usuário</th><th>Perfil</th><th>Situação</th><th>Data de cadastro</th><th class="coluna-acoes">Ações</th></tr></thead>
             <tbody>
-                {% for conta in usuarios %}
+            {% for conta in usuarios %}
                 <tr>
-                    <td>{{ conta.nome }}</td>
+                    <td><strong>{{ conta.nome }}</strong></td>
+                    <td>{{ conta.email or '—' }}</td>
                     <td>{{ conta.usuario }}</td>
                     <td>{{ 'Administrador' if conta.perfil == 'admin' else 'Colaborador' }}</td>
-                    <td>{{ 'Ativo' if conta.ativo else 'Inativo' }}</td>
+                    <td><span class="selo {{ 'selo-ok' if conta.ativo else 'selo-erro' }}">{{ 'Ativo' if conta.ativo else 'Inativo' }}</span></td>
                     <td>{{ conta.data_criacao | datahora_br }}</td>
+                    <td class="acoes-usuario">
+                        <a class="botao-acao botao-editar" href="{{ url_for('editar_usuario', id=conta.id) }}">✎ Editar usuário</a>
+                        <form method="post" action="{{ url_for('alternar_usuario', id=conta.id) }}" onsubmit="return confirm('Deseja realmente {{ 'desativar' if conta.ativo else 'ativar' }} esta conta?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="botao-acao botao-status" type="submit">{{ 'Desativar' if conta.ativo else 'Ativar' }}</button>
+                        </form>
+                        {% if conta.email and conta.ativo %}
+                        <form method="post" action="{{ url_for('reenviar_recuperacao', id=conta.id) }}" onsubmit="return confirm('Enviar um link de recuperação para {{ conta.email }}?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="botao-acao botao-email" type="submit">Reenviar senha</button>
+                        </form>
+                        {% endif %}
+                        <form method="post" action="{{ url_for('excluir_usuario', id=conta.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir permanentemente este usuário? O histórico administrativo será preservado.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="botao-acao botao-excluir" type="submit">Excluir</button>
+                        </form>
+                    </td>
                 </tr>
-                {% endfor %}
+            {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}
-    <p>Nenhum usuário cadastrado.</p>
-    {% endif %}
+    {% else %}<p>Nenhum usuário cadastrado.</p>{% endif %}
 </section>
+
+<style>
+.cabecalho-tabela-usuarios{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.cabecalho-tabela-usuarios h3{margin-bottom:4px}.contador-usuarios{background:#E9F5EE;color:#0F2E23;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.tabela-usuarios{min-width:1050px}.tabela-usuarios th{vertical-align:middle}.tabela-usuarios td{vertical-align:middle}.coluna-acoes{min-width:180px}
+.acoes-usuario{display:flex;flex-wrap:wrap;gap:6px;min-width:230px}.acoes-usuario form{display:inline-flex;margin:0;gap:0}
+.botao-acao{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:7px;padding:7px 10px;min-height:32px;font:600 11px Inter,Arial,sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer;margin:0}
+.botao-editar{background:#1F6F4B;color:#fff}.botao-editar:hover{background:#0F2E23;color:#fff}.botao-status{background:#E9F5EE;color:#0F2E23}.botao-email{background:#EDF3FA;color:#244D73}.botao-excluir{background:#FDECEC;color:#8A1F1F}
+.acoes-usuario button:hover{filter:brightness(.96);transform:translateY(-1px)}
+@media(max-width:760px){.acoes-usuario{min-width:220px}}
+</style>
 {% endblock %}
