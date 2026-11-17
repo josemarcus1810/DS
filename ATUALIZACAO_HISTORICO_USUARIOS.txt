@@ -1,0 +1,20 @@
+ATUALIZAÇÃO — EDIÇÃO E HISTÓRICO DE USUÁRIOS
+
+Esta versão inclui:
+- Botão Editar usuário na tabela de gerenciamento.
+- Página de edição de contas.
+- Link Histórico de atividades no menu administrativo e na página Gerenciar usuários.
+- Histórico separado das movimentações do estoque.
+- Auditoria administrativa com registro de criação, edição, ativação, desativação, exclusão e reenvio de recuperação.
+- Acesso ao histórico restrito ao perfil admin.
+- Criação automática e não destrutiva da tabela auditoria_usuarios ao abrir as páginas administrativas.
+
+COMO PUBLICAR:
+1. Faça backup do repositório atual.
+2. Substitua os arquivos do projeto pelos arquivos desta pasta (ou envie os arquivos alterados mantendo a estrutura).
+3. NÃO envie o arquivo .env e mantenha as variáveis já cadastradas no Render.
+4. NÃO execute scripts de apagar/recriar o banco.
+5. Faça commit e push para a branch conectada ao Render.
+6. Após o deploy, entre com um administrador e abra Gerenciar usuários > Ver histórico de atividades.
+
+IMPORTANTE: o histórico começa a registrar as ações administrativas feitas após esta versão ser publicada. Ele não recupera ações antigas que não foram auditadas.
