@@ -217,3 +217,18 @@ Administradora. Nenhuma tabela ou registro existente será apagado.
 Para cadastrar pessoas: entre com a conta admin, abra “Gerenciar usuários”
 no menu lateral, preencha os dados e clique em “Cadastrar usuário”. A senha
 inicial será trocada pelo próprio usuário no primeiro acesso.
+
+---
+
+# PARTE D — Recursos revisados nesta versão
+
+- O cadastro de produtos impede repetir um nome já existente (sem diferenciar maiúsculas/minúsculas). Para acrescentar quantidade de um item já cadastrado, use **Lotes**.
+- A edição do produto também verifica se o novo nome já pertence a outro produto.
+- A data de validade não pode ser anterior ao dia atual.
+- Um pedido marcado como produto novo é recusado quando o nome já existe no cadastro de produtos; nesse caso, selecione o produto cadastrado.
+- No menu administrativo, **Gerenciar usuários** permite editar nome, e-mail, perfil e situação, ativar/desativar, excluir e enviar um link de recuperação de senha.
+- **Histórico de atividades** registra as ações administrativas em tabela separada das movimentações do estoque. O registro permanece mesmo se a conta for excluída.
+- O sistema impede desativar/excluir a própria conta e impede remover o último administrador ativo. A permissão é conferida no servidor, não apenas escondida na tela.
+- As alterações de estrutura necessárias (coluna de e-mail e tabela de auditoria) são feitas de forma não destrutiva quando o administrador abre a área de usuários. Não execute comandos `DROP` nem apague tabelas existentes.
+
+**Importante:** antes de substituir uma versão, faça uma cópia de segurança da pasta e do banco. Mantenha seu arquivo `.env` fora do ZIP e configure novamente as variáveis de ambiente no computador/Render, se necessário.

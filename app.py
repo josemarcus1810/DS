@@ -120,7 +120,7 @@ ENDPOINTS_PUBLICOS = {
     "redefinir_senha",
     "static",
 }
-ENDPOINTS_ADMIN = {"gerenciar_usuarios"}
+ENDPOINTS_ADMIN = {"gerenciar_usuarios", "editar_usuario", "excluir_usuario", "alternar_usuario", "reenviar_recuperacao", "historico_usuarios"}
 
 
 # ==================================================
@@ -169,6 +169,51 @@ def garantir_coluna_perfil(cursor):
     cursor.execute(
         "UPDATE usuarios SET perfil = 'admin' WHERE LOWER(usuario) = 'admin'"
     )
+
+
+def garantir_recursos_administrativos(cursor):
+    """Migrações pequenas e não destrutivas para recursos administrativos."""
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM information_schema.columns "
+        "WHERE table_schema = DATABASE() AND table_name = 'usuarios' AND column_name = 'email'"
+    )
+    if not cursor.fetchone()["total"]:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN email VARCHAR(254) NULL")
+
+    garantir_coluna_perfil(cursor)
+    cursor.execute(
+        """CREATE TABLE IF NOT EXISTS auditoria_usuarios (
+            id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            administrador_id INT NULL,
+            administrador_usuario VARCHAR(50) NOT NULL,
+            usuario_id INT NULL,
+            usuario_nome VARCHAR(100) NOT NULL,
+            usuario_login VARCHAR(50) NOT NULL,
+            usuario_email VARCHAR(254) NULL,
+            acao VARCHAR(40) NOT NULL,
+            descricao TEXT NULL,
+            data_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_auditoria_data (data_hora),
+            INDEX idx_auditoria_usuario (usuario_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+    )
+
+
+def registrar_auditoria_usuario(cursor, conta, acao, descricao):
+    cursor.execute(
+        """INSERT INTO auditoria_usuarios
+        (administrador_id, administrador_usuario, usuario_id, usuario_nome,
+         usuario_login, usuario_email, acao, descricao)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+        (session.get("usuario_id"), session.get("usuario", "admin"),
+         conta.get("id"), conta.get("nome") or "(sem nome)",
+         conta.get("usuario") or "(sem usuário)", conta.get("email"), acao, descricao)
+    )
+
+
+def quantidade_admins_ativos(cursor):
+    cursor.execute("SELECT COUNT(*) AS total FROM usuarios WHERE perfil = 'admin' AND ativo = 1")
+    return cursor.fetchone()["total"]
 
 
 def exigir_admin():
@@ -222,7 +267,7 @@ def filtro_classe_selo(valor):
 @app.context_processor
 def dados_comuns():
     return {
-        "data_minima": f"{ANO_MINIMO}-01-01",
+        "data_minima": seguranca.agora().date().isoformat(),
         "data_maxima": f"{ANO_MAXIMO}-12-31",
         "limite_quantidade": LIMITE_QUANTIDADE,
     }
@@ -259,6 +304,9 @@ def ler_data_validade(formulario):
             f"A data de validade deve estar entre os anos "
             f"{ANO_MINIMO} e {ANO_MAXIMO}."
         )
+
+    if data < seguranca.agora().date():
+        return None, "A data de validade não pode ser anterior à data de hoje."
 
     return data, None
 
@@ -486,6 +534,21 @@ def proteger_paginas():
     if "usuario_id" not in session:
         return redirect(url_for("login"))
 
+    # Confere a situação e o perfil no banco em cada requisição protegida.
+    # Assim, uma conta desativada ou rebaixada perde o acesso imediatamente.
+    with abrir_banco() as (banco, cursor):
+        cursor.execute(
+            "SELECT ativo, perfil FROM usuarios WHERE id = %s",
+            (session.get("usuario_id"),)
+        )
+        conta_sessao = cursor.fetchone()
+
+    if not conta_sessao or not conta_sessao["ativo"]:
+        session.clear()
+        flash("Sua conta está inativa ou não existe mais. Entre em contato com o administrador.", "erro")
+        return redirect(url_for("login"))
+
+    session["perfil"] = conta_sessao["perfil"]
     if request.endpoint in ENDPOINTS_ADMIN and session.get("perfil") != "admin":
         abort(403)
 
@@ -615,6 +678,8 @@ def esqueci_senha():
         )
 
         with abrir_banco() as (banco, cursor):
+            garantir_recursos_administrativos(cursor)
+            banco.commit()
             cursor.execute(
                 """
                 SELECT id, nome, usuario, email
@@ -921,6 +986,14 @@ def produtos():
             dados, erros = validar_produto_novo(request.form)
 
             if not erros:
+                cursor.execute(
+                    "SELECT id FROM produtos WHERE LOWER(TRIM(nome)) = LOWER(TRIM(%s)) LIMIT 1",
+                    (dados["nome"],)
+                )
+                if cursor.fetchone():
+                    erros.append("Esse produto já está cadastrado. Para evitar duplicidade, edite o produto existente ou cadastre um lote.")
+
+            if not erros:
                 codigo = gerar_codigo_produto(cursor, dados["tipo"])
 
                 cursor.execute(
@@ -1006,6 +1079,14 @@ def editar_produto(id):
             situacao = request.form.get("situacao", "")
             if situacao not in SITUACOES_PRODUTO:
                 erros.append("Situação inválida.")
+
+            if not erros:
+                cursor.execute(
+                    "SELECT id FROM produtos WHERE LOWER(TRIM(nome)) = LOWER(TRIM(%s)) AND id <> %s LIMIT 1",
+                    (nome, id)
+                )
+                if cursor.fetchone():
+                    erros.append("Já existe outro produto cadastrado com esse nome.")
 
             if not erros:
                 mudancas = []
@@ -1333,6 +1414,14 @@ def validar_pedido(cursor, formulario):
             produto_id = produto["id"]
             nome_produto = produto["nome"]
 
+    if produto_novo == "sim" and nome_produto:
+        cursor.execute(
+            "SELECT id FROM produtos WHERE LOWER(TRIM(nome)) = LOWER(TRIM(%s)) LIMIT 1",
+            (nome_produto,)
+        )
+        if cursor.fetchone():
+            erros.append("Esse produto já consta no estoque. Selecione a opção de produto cadastrado em vez de solicitar como novo.")
+
     quantidade, erro = ler_inteiro(
         formulario, "quantidade", "Quantidade solicitada", 1
     )
@@ -1572,75 +1661,181 @@ def gerenciar_usuarios():
     exigir_admin()
     status = 200
 
-    if request.method == "POST":
-        usuario_novo = request.form.get("usuario", "").strip()
-        nome_novo = request.form.get("nome", "").strip()
-        email_novo = request.form.get("email", "").strip().lower()
-        senha_nova = request.form.get("senha", "")
-        perfil_novo = request.form.get("perfil", "colaborador").strip()
-
-        erro = None
-        if not re.fullmatch(r"[A-Za-z0-9._-]{3,50}", usuario_novo):
-            erro = "O usuário deve ter de 3 a 50 caracteres: letras, números, ponto, _ ou -."
-        elif not nome_novo or len(nome_novo) > 100:
-            erro = "Informe um nome com até 100 caracteres."
-        elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_novo):
-            erro = "Informe um endereço de e-mail válido."    
-        elif perfil_novo not in ("admin", "colaborador"):
-            erro = "Selecione um perfil válido."
-        else:
-            erro = seguranca.validar_nova_senha(senha_nova)
-
-        if erro:
-            flash(erro, "erro")
-            status = 400
-        else:
-            with abrir_banco() as (banco, cursor):
-                cursor.execute("SELECT id FROM usuarios WHERE usuario = %s", (usuario_novo,))
-                if cursor.fetchone():
-                    flash("Esse nome de usuário já está cadastrado.", "erro")
-                    status = 400
-                else:
-                    cursor.execute(
-                        """
-                        INSERT INTO usuarios
-                            (usuario, nome, email, senha_hash, ativo, perfil, motivo_troca, senha_alterada_em)
-                        VALUES (%s, %s, %s, %s, 1, %s, %s, %s)
-                        """,
-                        (
-                            usuario_novo,
-                            nome_novo,
-                            email_novo,
-                            seguranca.gerar_hash(senha_nova),
-                            perfil_novo,
-                            seguranca.MOTIVO_SISTEMA,
-                            seguranca.agora(),
-                        )
-                    )
-                    banco.commit()
-                    flash(
-                        f"Usuário '{usuario_novo}' criado. No primeiro acesso, será solicitada a troca da senha.",
-                        "sucesso",
-                    )
-                    return redirect(url_for("gerenciar_usuarios"))
-
     with abrir_banco() as (banco, cursor):
-        garantir_coluna_perfil(cursor)
-        banco.commit()
-        cursor.execute(
-            """
-            SELECT id, usuario, nome, perfil, ativo, data_criacao
-            FROM usuarios
-            ORDER BY nome, usuario
-            """
-        )
+        garantir_recursos_administrativos(cursor)
+        if request.method == "POST":
+            usuario_novo = request.form.get("usuario", "").strip()
+            nome_novo = request.form.get("nome", "").strip()
+            email_novo = request.form.get("email", "").strip().lower()
+            senha_nova = request.form.get("senha", "")
+            perfil_novo = request.form.get("perfil", "colaborador").strip()
+
+            erro = None
+            if not re.fullmatch(r"[A-Za-z0-9._-]{3,50}", usuario_novo):
+                erro = "O usuário deve ter de 3 a 50 caracteres: letras, números, ponto, _ ou -."
+            elif not nome_novo or len(nome_novo) > 100:
+                erro = "Informe um nome com até 100 caracteres."
+            elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_novo):
+                erro = "Informe um endereço de e-mail válido."
+            elif perfil_novo not in ("admin", "colaborador"):
+                erro = "Selecione um perfil válido."
+            else:
+                erro = seguranca.validar_nova_senha(senha_nova)
+
+            if not erro:
+                cursor.execute("SELECT id FROM usuarios WHERE LOWER(usuario) = LOWER(%s)", (usuario_novo,))
+                if cursor.fetchone():
+                    erro = "Esse nome de usuário já está cadastrado."
+                else:
+                    cursor.execute("SELECT id FROM usuarios WHERE LOWER(email) = LOWER(%s) AND email IS NOT NULL", (email_novo,))
+                    if cursor.fetchone():
+                        erro = "Esse e-mail já está vinculado a outra conta."
+
+            if erro:
+                flash(erro, "erro")
+                status = 400
+            else:
+                cursor.execute(
+                    """INSERT INTO usuarios
+                    (usuario, nome, email, senha_hash, ativo, perfil, motivo_troca, senha_alterada_em)
+                    VALUES (%s, %s, %s, %s, 1, %s, %s, %s)""",
+                    (usuario_novo, nome_novo, email_novo, seguranca.gerar_hash(senha_nova),
+                     perfil_novo, seguranca.MOTIVO_SISTEMA, seguranca.agora())
+                )
+                novo_id = cursor.lastrowid
+                registrar_auditoria_usuario(cursor, {"id": novo_id, "nome": nome_novo, "usuario": usuario_novo, "email": email_novo}, "CRIACAO", "Conta criada com perfil " + perfil_novo + ".")
+                banco.commit()
+                flash(f"Usuário '{usuario_novo}' criado com sucesso.", "sucesso")
+                return redirect(url_for("gerenciar_usuarios"))
+
+        cursor.execute("SELECT id, usuario, nome, email, perfil, ativo, data_criacao FROM usuarios ORDER BY nome, usuario")
         usuarios_cadastrados = cursor.fetchall()
 
-    return render_template(
-        "gerenciar_usuarios.html",
-        usuarios=usuarios_cadastrados,
-        tamanho_minimo=seguranca.TAMANHO_MINIMO_SENHA,
-    ), status
+    return render_template("gerenciar_usuarios.html", usuarios=usuarios_cadastrados, tamanho_minimo=seguranca.TAMANHO_MINIMO_SENHA), status
+
+
+@app.route("/editar_usuario/<int:id>", methods=["GET", "POST"])
+def editar_usuario(id):
+    exigir_admin()
+    status = 200
+    with abrir_banco() as (banco, cursor):
+        garantir_recursos_administrativos(cursor)
+        cursor.execute("SELECT id, usuario, nome, email, perfil, ativo FROM usuarios WHERE id = %s", (id,))
+        conta = cursor.fetchone()
+        if not conta:
+            abort(404)
+        if request.method == "POST":
+            nome = request.form.get("nome", "").strip()
+            email = request.form.get("email", "").strip().lower()
+            perfil = request.form.get("perfil", "")
+            ativo = 1 if request.form.get("ativo") == "1" else 0
+            erro = None
+            if not nome or len(nome) > 100:
+                erro = "Informe um nome com até 100 caracteres."
+            elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+                erro = "Informe um e-mail válido."
+            elif perfil not in ("admin", "colaborador"):
+                erro = "Perfil inválido."
+            else:
+                cursor.execute("SELECT id FROM usuarios WHERE LOWER(email)=LOWER(%s) AND id<>%s", (email, id))
+                if cursor.fetchone(): erro = "Esse e-mail já pertence a outra conta."
+            if conta["id"] == session.get("usuario_id") and ativo == 0:
+                erro = "Você não pode desativar sua própria conta."
+            elif conta["id"] == session.get("usuario_id") and perfil != "admin":
+                erro = "Você não pode remover seu próprio perfil de administrador."
+            if conta["perfil"] == "admin" and conta["ativo"] and (perfil != "admin" or not ativo) and quantidade_admins_ativos(cursor) <= 1:
+                erro = "Não é possível remover ou desativar o último administrador ativo."
+            if erro:
+                flash(erro, "erro"); status = 400
+            else:
+                cursor.execute("UPDATE usuarios SET nome=%s, email=%s, perfil=%s, ativo=%s WHERE id=%s", (nome, email, perfil, ativo, id))
+                registrar_auditoria_usuario(cursor, conta, "EDICAO", f"Dados atualizados. Nome: {nome}; e-mail: {email}; perfil: {perfil}; ativo: {ativo}.")
+                banco.commit()
+                flash("Dados do usuário atualizados.", "sucesso")
+                return redirect(url_for("gerenciar_usuarios"))
+    return render_template("editar_usuario.html", conta=conta, form=request.form if request.method == "POST" else {}), status
+
+
+@app.route("/usuario/<int:id>/alternar", methods=["POST"])
+def alternar_usuario(id):
+    exigir_admin()
+    with abrir_banco() as (banco, cursor):
+        garantir_recursos_administrativos(cursor)
+        cursor.execute("SELECT id, usuario, nome, email, perfil, ativo FROM usuarios WHERE id=%s", (id,))
+        conta = cursor.fetchone()
+        if not conta: abort(404)
+        novo_ativo = 0 if conta["ativo"] else 1
+        erro = None
+        if id == session.get("usuario_id") and not novo_ativo: erro = "Você não pode desativar sua própria conta."
+        elif conta["perfil"] == "admin" and conta["ativo"] and not novo_ativo and quantidade_admins_ativos(cursor) <= 1: erro = "Não é possível desativar o último administrador ativo."
+        if erro:
+            flash(erro, "erro")
+        else:
+            cursor.execute("UPDATE usuarios SET ativo=%s WHERE id=%s", (novo_ativo, id))
+            registrar_auditoria_usuario(cursor, conta, "ATIVACAO" if novo_ativo else "DESATIVACAO", "Conta " + ("ativada" if novo_ativo else "desativada") + ".")
+            banco.commit(); flash("Conta atualizada com sucesso.", "sucesso")
+    return redirect(url_for("gerenciar_usuarios"))
+
+
+@app.route("/usuario/<int:id>/excluir", methods=["POST"])
+def excluir_usuario(id):
+    exigir_admin()
+    with abrir_banco() as (banco, cursor):
+        garantir_recursos_administrativos(cursor)
+        cursor.execute("SELECT id, usuario, nome, email, perfil, ativo FROM usuarios WHERE id=%s", (id,))
+        conta = cursor.fetchone()
+        if not conta: abort(404)
+        erro = None
+        if id == session.get("usuario_id"): erro = "Você não pode excluir sua própria conta."
+        elif conta["perfil"] == "admin" and conta["ativo"] and quantidade_admins_ativos(cursor) <= 1: erro = "Não é possível excluir o último administrador ativo."
+        if erro:
+            flash(erro, "erro")
+        else:
+            registrar_auditoria_usuario(cursor, conta, "EXCLUSAO", "Conta excluída pelo administrador. O registro de auditoria foi preservado.")
+            cursor.execute("DELETE FROM tokens_recuperacao WHERE usuario_id=%s", (id,))
+            cursor.execute("DELETE FROM usuarios WHERE id=%s", (id,))
+            banco.commit(); flash("Usuário excluído. O histórico administrativo foi preservado.", "sucesso")
+    return redirect(url_for("gerenciar_usuarios"))
+
+
+@app.route("/usuario/<int:id>/reenviar-recuperacao", methods=["POST"])
+def reenviar_recuperacao(id):
+    exigir_admin()
+    with abrir_banco() as (banco, cursor):
+        garantir_recursos_administrativos(cursor)
+        cursor.execute("SELECT id, usuario, nome, email, perfil, ativo FROM usuarios WHERE id=%s", (id,))
+        conta = cursor.fetchone()
+        if not conta: abort(404)
+        if not conta.get("email"):
+            flash("Esse usuário não possui e-mail cadastrado.", "erro")
+        elif not conta["ativo"]:
+            flash("Ative a conta antes de enviar a recuperação.", "erro")
+        else:
+            token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+            cursor.execute("DELETE FROM tokens_recuperacao WHERE usuario_id=%s AND usado_em IS NULL", (id,))
+            cursor.execute("INSERT INTO tokens_recuperacao (usuario_id, token_hash, expira_em) VALUES (%s, %s, DATE_ADD(NOW(), INTERVAL 30 MINUTE))", (id, token_hash))
+            banco.commit()
+            link = url_for("redefinir_senha", token=token, _external=True)
+            try:
+                enviar_email(conta["email"], "Recuperação de senha - Almoxarifado", f"Olá, {conta['nome']}!\n\nO administrador solicitou o envio de um link para redefinir sua senha.\n\nAcesse: {link}\n\nO link é válido por 30 minutos e pode ser utilizado uma única vez.\n\nEquipe do Almoxarifado")
+                registrar_auditoria_usuario(cursor, conta, "RECUPERACAO", "Link de recuperação enviado para o e-mail cadastrado.")
+                banco.commit(); flash("E-mail de recuperação enviado.", "sucesso")
+            except Exception:
+                app.logger.exception("Falha ao reenviar recuperação de senha")
+                cursor.execute("DELETE FROM tokens_recuperacao WHERE token_hash=%s", (token_hash,)); banco.commit()
+                flash("Não foi possível enviar o e-mail. Confira a configuração do serviço de e-mail.", "erro")
+    return redirect(url_for("gerenciar_usuarios"))
+
+
+@app.route("/historico_usuarios.html")
+def historico_usuarios():
+    exigir_admin()
+    with abrir_banco() as (banco, cursor):
+        garantir_recursos_administrativos(cursor); banco.commit()
+        cursor.execute("SELECT * FROM auditoria_usuarios ORDER BY data_hora DESC, id DESC LIMIT 500")
+        registros = cursor.fetchall()
+    return render_template("historico_usuarios.html", registros=registros)
 
 
 # ==================================================

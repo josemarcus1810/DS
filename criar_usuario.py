@@ -43,12 +43,17 @@ def main():
 
     try:
         cursor.execute(
-            "SELECT id FROM usuarios WHERE usuario = %s",
+            "SELECT id FROM usuarios WHERE LOWER(usuario) = LOWER(%s)",
             (usuario,)
         )
 
         if cursor.fetchone():
             print("Esse usuário já existe.")
+            return
+
+        cursor.execute("SELECT id FROM usuarios WHERE LOWER(email) = LOWER(%s)", (email,))
+        if cursor.fetchone():
+            print("Esse e-mail já está vinculado a outra conta.")
             return
 
         cursor.execute(
