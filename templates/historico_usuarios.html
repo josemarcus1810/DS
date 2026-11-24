@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block titulo %}Histórico de atividades{% endblock %}
+{% block cabecalho_titulo %}Histórico de atividades{% endblock %}
+{% block cabecalho_texto %}Consulte as ações administrativas realizadas no gerenciamento de usuários.{% endblock %}
+
+{% block conteudo %}
+<section class="secao-conteudo">
+    <div class="cartao" style="border-left: 4px solid #1F6F4B;">
+        <h3>Registro de atividades administrativas</h3>
+        <p class="texto-ajuda">
+            Este histórico é separado das movimentações do estoque. Ele mostra até os últimos 500 registros.
+            Ações antigas, anteriores à ativação da auditoria, não são recuperadas.
+        </p>
+
+        {% if registros %}
+        <div class="tabela-rolavel">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data e hora</th>
+                        <th>Administrador</th>
+                        <th>Usuário afetado</th>
+                        <th>Login</th>
+                        <th>E-mail</th>
+                        <th>Ação</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for registro in registros %}
+                    <tr>
+                        <td>{{ registro.data_hora|datahora_br }}</td>
+                        <td>{{ registro.administrador_usuario or '—' }}</td>
+                        <td>{{ registro.usuario_nome or '—' }}</td>
+                        <td>{{ registro.usuario_login or '—' }}</td>
+                        <td>{{ registro.usuario_email or '—' }}</td>
+                        <td>{{ registro.acao|replace('_', ' ')|title }}</td>
+                        <td>{{ registro.descricao or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="mensagem mensagem-info" role="status">
+            Ainda não há atividades registradas. As próximas ações administrativas aparecerão aqui.
+        </div>
+        {% endif %}
+
+        <div class="acoes-formulario" style="margin-top: 18px;">
+            <a class="botao" href="{{ url_for('gerenciar_usuarios') }}">Voltar para gerenciar usuários</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
