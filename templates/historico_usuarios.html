@@ -5,52 +5,76 @@
 {% block cabecalho_texto %}Consulte as ações administrativas realizadas no gerenciamento de usuários.{% endblock %}
 
 {% block conteudo %}
-<section class="secao-conteudo">
-    <div class="cartao" style="border-left: 4px solid #1F6F4B;">
-        <h3>Registro de atividades administrativas</h3>
-        <p class="texto-ajuda">
-            Este histórico é separado das movimentações do estoque. Ele mostra até os últimos 500 registros.
-            Ações antigas, anteriores à ativação da auditoria, não são recuperadas.
-        </p>
+<section class="historico-usuarios-pagina">
+    <div class="historico-usuarios-cabecalho">
+        <div>
+            <span class="historico-usuarios-etiqueta">AUDITORIA DO SISTEMA</span>
+            <h3>Registro de atividades administrativas</h3>
+            <p class="texto-ajuda">
+                Acompanhe as alterações realizadas no gerenciamento de usuários.
+                Este histórico é independente das movimentações do estoque e exibe até os últimos 500 registros.
+            </p>
+        </div>
+        <div class="historico-usuarios-contador">
+            <strong>{{ registros|length }}</strong>
+            <span>registro(s)</span>
+        </div>
+    </div>
 
-        {% if registros %}
-        <div class="tabela-rolavel">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data e hora</th>
-                        <th>Administrador</th>
-                        <th>Usuário afetado</th>
-                        <th>Login</th>
-                        <th>E-mail</th>
-                        <th>Ação</th>
-                        <th>Descrição</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for registro in registros %}
-                    <tr>
-                        <td>{{ registro.data_hora|datahora_br }}</td>
-                        <td>{{ registro.administrador_usuario or '—' }}</td>
-                        <td>{{ registro.usuario_nome or '—' }}</td>
-                        <td>{{ registro.usuario_login or '—' }}</td>
-                        <td>{{ registro.usuario_email or '—' }}</td>
-                        <td>{{ registro.acao|replace('_', ' ')|title }}</td>
-                        <td>{{ registro.descricao or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="mensagem mensagem-info" role="status">
-            Ainda não há atividades registradas. As próximas ações administrativas aparecerão aqui.
-        </div>
-        {% endif %}
+    {% if registros %}
+    <div class="historico-usuarios-tabela-wrap">
+        <table class="historico-usuarios-tabela">
+            <thead>
+                <tr>
+                    <th>Data e hora</th>
+                    <th>Administrador</th>
+                    <th>Usuário afetado</th>
+                    <th>Login</th>
+                    <th>E-mail</th>
+                    <th>Ação</th>
+                    <th>Descrição</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registro in registros %}
+                {% set acao = (registro.acao or '')|lower %}
+                <tr>
+                    <td class="historico-data">{{ registro.data_hora|datahora_br }}</td>
+                    <td><span class="historico-administrador">{{ registro.administrador_usuario or '—' }}</span></td>
+                    <td class="historico-nome">{{ registro.usuario_nome or '—' }}</td>
+                    <td class="historico-login">{{ registro.usuario_login or '—' }}</td>
+                    <td class="historico-email">{{ registro.usuario_email or '—' }}</td>
+                    <td>
+                        {% if 'exclu' in acao or 'delete' in acao %}
+                            <span class="historico-selo historico-selo-exclusao">{{ registro.acao|replace('_', ' ')|title }}</span>
+                        {% elif 'recuper' in acao or 'senha' in acao %}
+                            <span class="historico-selo historico-selo-recuperacao">{{ registro.acao|replace('_', ' ')|title }}</span>
+                        {% elif 'ativ' in acao %}
+                            <span class="historico-selo historico-selo-status">{{ registro.acao|replace('_', ' ')|title }}</span>
+                        {% else %}
+                            <span class="historico-selo historico-selo-edicao">{{ registro.acao|replace('_', ' ')|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="historico-descricao">{{ registro.descricao or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="historico-usuarios-observacao">
+        <span aria-hidden="true">i</span>
+        Ações anteriores à ativação da auditoria não são recuperadas.
+    </p>
+    {% else %}
+    <div class="historico-usuarios-vazio">
+        <div class="historico-usuarios-vazio-icone" aria-hidden="true">✓</div>
+        <h4>Nenhuma atividade registrada</h4>
+        <p>As próximas ações administrativas realizadas no gerenciamento de usuários aparecerão aqui.</p>
+    </div>
+    {% endif %}
 
-        <div class="acoes-formulario" style="margin-top: 18px;">
-            <a class="botao" href="{{ url_for('gerenciar_usuarios') }}">Voltar para gerenciar usuários</a>
-        </div>
+    <div class="historico-usuarios-acoes">
+        <a class="botao-secundario" href="{{ url_for('gerenciar_usuarios') }}">Voltar para gerenciar usuários</a>
     </div>
 </section>
 {% endblock %}
