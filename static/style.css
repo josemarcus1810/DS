@@ -1015,3 +1015,294 @@ footer p {
     color: #1F6F4B;
     text-decoration: underline;
 }
+
+/* =====================================================
+   HISTÓRICO DE ATIVIDADES - ESTILIZAÇÃO ESPECÍFICA
+   Mantém a identidade visual do Almoxarifado
+===================================================== */
+
+.conteudo main .historico-usuarios-pagina {
+    width: 100%;
+    margin: 26px auto 34px;
+    padding: 26px 28px;
+    background: var(--cor-branco);
+    border: 1px solid var(--cor-borda);
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(15, 46, 35, 0.055);
+}
+
+.historico-usuarios-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #E8EEEA;
+}
+
+.historico-usuarios-etiqueta {
+    display: inline-block;
+    margin-bottom: 8px;
+    color: var(--cor-botao);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.1px;
+}
+
+.conteudo .historico-usuarios-cabecalho h3 {
+    margin: 0 0 7px;
+    color: var(--cor-primaria);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.historico-usuarios-cabecalho .texto-ajuda {
+    max-width: 760px;
+    margin: 0;
+    color: var(--cor-texto-secundario);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.historico-usuarios-contador {
+    flex: 0 0 auto;
+    min-width: 92px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--cor-fundo-claro);
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    color: var(--cor-primaria);
+}
+
+.historico-usuarios-contador strong {
+    font-size: 22px;
+    line-height: 1.2;
+}
+
+.historico-usuarios-contador span {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--cor-texto-secundario);
+}
+
+.historico-usuarios-tabela-wrap {
+    width: 100%;
+    margin-top: 20px;
+    overflow-x: auto;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    background: var(--cor-branco);
+}
+
+.conteudo table.historico-usuarios-tabela {
+    width: 100%;
+    min-width: 1050px;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.historico-usuarios-tabela th {
+    padding: 13px 14px;
+    background: var(--cor-fundo-claro);
+    color: var(--cor-primaria);
+    border-bottom: 1px solid var(--cor-borda);
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.historico-usuarios-tabela td {
+    padding: 13px 14px;
+    color: #34483E;
+    border-bottom: 1px solid #E9EFEB;
+    font-size: 12.5px;
+    line-height: 1.55;
+    vertical-align: middle;
+}
+
+.historico-usuarios-tabela tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.historico-usuarios-tabela tbody tr:nth-child(even) {
+    background: #FBFDFC;
+}
+
+.historico-usuarios-tabela tbody tr:hover {
+    background: #F2F8F4;
+}
+
+.historico-usuarios-tabela .historico-data {
+    min-width: 105px;
+    color: var(--cor-texto-secundario);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.historico-administrador {
+    color: var(--cor-primaria);
+    font-weight: 700;
+}
+
+.historico-usuarios-tabela .historico-nome {
+    min-width: 165px;
+    font-weight: 600;
+}
+
+.historico-usuarios-tabela .historico-login {
+    min-width: 110px;
+    white-space: nowrap;
+}
+
+.historico-usuarios-tabela .historico-email {
+    min-width: 185px;
+    overflow-wrap: anywhere;
+}
+
+.historico-usuarios-tabela .historico-descricao {
+    min-width: 260px;
+    max-width: 430px;
+    overflow-wrap: anywhere;
+}
+
+.historico-selo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 25px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.historico-selo-edicao {
+    background: #E8F4ED;
+    color: #216343;
+}
+
+.historico-selo-exclusao {
+    background: #FCECEC;
+    color: #963A3A;
+}
+
+.historico-selo-recuperacao {
+    background: #FFF4DB;
+    color: #80601A;
+}
+
+.historico-selo-status {
+    background: #EAF0FA;
+    color: #355B91;
+}
+
+.historico-usuarios-observacao {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 13px 2px 0;
+    color: var(--cor-texto-secundario);
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.historico-usuarios-observacao span {
+    display: inline-flex;
+    flex: 0 0 17px;
+    width: 17px;
+    height: 17px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--cor-destaque);
+    border-radius: 50%;
+    color: var(--cor-botao);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.historico-usuarios-vazio {
+    margin-top: 20px;
+    padding: 42px 20px;
+    text-align: center;
+    background: #FBFDFC;
+    border: 1px dashed #C9D9CF;
+    border-radius: 10px;
+}
+
+.historico-usuarios-vazio-icone {
+    width: 42px;
+    height: 42px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--cor-fundo-claro);
+    color: var(--cor-botao);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.historico-usuarios-vazio h4 {
+    margin-bottom: 5px;
+    color: var(--cor-primaria);
+    font-size: 15px;
+}
+
+.historico-usuarios-vazio p {
+    margin: 0;
+    color: var(--cor-texto-secundario);
+    font-size: 13px;
+}
+
+.historico-usuarios-acoes {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 20px;
+    padding-top: 17px;
+    border-top: 1px solid #E8EEEA;
+}
+
+@media (max-width: 760px) {
+    .conteudo main .historico-usuarios-pagina {
+        margin: 12px auto 22px;
+        padding: 19px 15px;
+    }
+
+    .historico-usuarios-cabecalho {
+        gap: 12px;
+    }
+
+    .historico-usuarios-contador {
+        min-width: 72px;
+        padding: 8px 10px;
+    }
+
+    .historico-usuarios-contador strong {
+        font-size: 19px;
+    }
+
+    .historico-usuarios-acoes .botao-secundario {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+@media (max-width: 520px) {
+    .historico-usuarios-cabecalho {
+        flex-direction: column;
+    }
+
+    .historico-usuarios-contador {
+        flex-direction: row;
+        gap: 7px;
+        align-items: baseline;
+    }
+}
